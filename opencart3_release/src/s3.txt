@@ -1,5 +1,7 @@
 ###
-### какие файлы куда копируем
+### List of files for create module.zip
+###
+### file_from | file_to
 ###
 
 admin-controller-polkadot.php   | upload/admin/controller/extension/payment/polkadot.php
@@ -16,13 +18,6 @@ add/image/Alzymologist_.png   | upload/catalog/view/theme/default/image/polkadot
 add/image/polkadot.webp       | upload/catalog/view/theme/default/image/polkadot/*
 
 DOT.js                                     | upload/catalog/view/javascript/polkadot/*
-
-#add/js/bundle-polkadot-api.js            | upload/catalog/view/javascript/polkadot/*
-#add/js/bundle-polkadot-extension-dapp.js | upload/catalog/view/javascript/polkadot/*
-#add/js/bundle-polkadot-keyring.js        | upload/catalog/view/javascript/polkadot/*
-#add/js/bundle-polkadot-types.js          | upload/catalog/view/javascript/polkadot/*
-#add/js/bundle-polkadot-util-crypto.js    | upload/catalog/view/javascript/polkadot/*
-#add/js/bundle-polkadot-util.js           | upload/catalog/view/javascript/polkadot/*
 
 https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | upload/catalog/view/javascript/polkadot/*
 https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | upload/catalog/view/javascript/polkadot/*
