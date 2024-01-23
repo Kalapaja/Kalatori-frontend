@@ -1,1 +1,0 @@
-./polkadot/catalog/controller/payment/polkadot.php
