@@ -19,6 +19,8 @@ Minimalistic and neat store front.
 
 [demo deployment](https://dev-prestashop.zymologia.fi)
 
+Instructions:
+
 # How to install plugin to OpenCart3 ?
 
 ![1. In /admin go to Extensions-Installer and Upload polkadot.opencart3.ocmod.zip](/images/01 ADMIN go Extensions-Installer-Upload.webp)
