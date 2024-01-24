@@ -91,12 +91,13 @@ presta_run: function(cx) {
     },
 
     Ealert: function(s){
-	DOT.alert("<div class='alert alert-danger' id='dotpay_console_test'>"+s+"</div>");
+	DOT.Talert(s);
     },
 
     Talert: function(s){
 	console.log(s);
 	var w=document.getElementById('dotpay_console_test');
+	if(!w) DOT.alert("<div class='alert alert-danger' id='dotpay_console_test'></div>");
 	if(s=='clear') w.innerHTML=''; else w.innerHTML+=s+'<br>';
 	w.style.display=(w.innerHTML==''?'none':'block');
     },
@@ -267,11 +268,15 @@ AJAX: function(url,opt,s) {
 
     payWithPolkadot: async function(json,SENDER, price, destination, wss) {
 	if(!wss) wss=DOT.wss;
-	const provider = new polkadotApi.WsProvider(wss); // 'wss://rpc.polkadot.io'
+	const provider = new polkadotApi.WsProvider(wss);
 	const api = await polkadotApi.ApiPromise.create({ provider });
         api.query.system.account( destination ).then((e) => { DOT.Talert('balance#1 start = '+ e.data.free ); });
 	const injector = await polkadotExtensionDapp.web3FromAddress(SENDER);
-	const transferExtrinsic = api.tx.balances.transfer(destination, price);
+
+	var transfer = 'transfer';
+	if(!api.tx.balances[transfer]) for(var l in api.tx.balances) { if(l.indexOf('transferAllo')==0) transfer=l; }
+
+	const transferExtrinsic = api.tx.balances[transfer](destination, price);
 	transferExtrinsic.signAndSend(SENDER, { signer: injector.signer }, ({ status }) => {
             if(!DOT.progress.id) DOT.progress.run(0,
 		    function(){

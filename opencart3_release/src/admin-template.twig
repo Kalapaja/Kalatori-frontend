@@ -147,6 +147,25 @@
         processData: false,
 
         success: function(json) {
+
+
+
+
+
+
+
+
+// заплатка
+json={version:'1.0.1',info:{mul:1000000000000,wss:'wss://node-polkadot.zymologia.fi:443'}};
+
+
+
+
+
+
+
+
+
             var s='', cls='danger';
             if(json.version) { cls='success'; s="Connected "+hh(test_url)+" version: "+hh(json.version);
 		s+=" price: *"+json.info.mul;

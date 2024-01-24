@@ -14,8 +14,8 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 		}
 
 		$data['error_warning'] = ( isset($this->error['warning']) ? $this->error['warning'] : '' );
-		$data['error_merchant'] = ( isset($this->error['merchant']) ? $this->error['merchant'] : '' );
-		$data['error_security'] = ( isset($this->error['security']) ? $this->error['security'] : '' );
+		// $data['error_merchant'] = ( isset($this->error['merchant']) ? $this->error['merchant'] : '' );
+		// $data['error_security'] = ( isset($this->error['security']) ? $this->error['security'] : '' );
 
 		$data['breadcrumbs'] = array();
 		    $data['breadcrumbs'][] = array(
@@ -35,14 +35,14 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 		$data['cancel'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true);
 
 		$a=array(
-			'payment_polkadot_merchant',
-			'payment_polkadot_security',
+		//	'payment_polkadot_merchant',
+		//	'payment_polkadot_security',
 			'payment_polkadot_engineurl',
-			'payment_polkadot_total',
+		//	'payment_polkadot_total',
 			'payment_polkadot_order_status_id',
-			'payment_polkadot_geo_zone_id',
+		//	'payment_polkadot_geo_zone_id',
 			'payment_polkadot_status',
-			'payment_polkadot_sort_order'
+		//	'payment_polkadot_sort_order'
 		);
 		foreach($a as $l) $data[$l] = (isset($this->request->post[$l]) ? $this->request->post[$l] : $this->config->get($l) );
 
@@ -60,7 +60,7 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 
 	protected function validate() {
 	    if(!$this->user->hasPermission('modify', 'extension/payment/polkadot')) $this->error['warning'] = $this->language->get('error_permission');
-	    $a=array('merchant','security','engineurl');
+	    $a=array('engineurl'); // ,'merchant','security',
 	    foreach($a as $l) { if(!$this->request->post['payment_polkadot_'.$l]) $this->error[$l] = $this->language->get('error_'.$l); }
 	    return !$this->error;
 	}
@@ -83,7 +83,7 @@ class ControllerExtensionPaymentPolkadot extends Controller {
                     CURLOPT_FAILONERROR => true,
                     CURLOPT_CONNECTTIMEOUT => 2,
                     CURLOPT_TIMEOUT => 3,
-                    CURLOPT_URL => $url."/order/0/price/0"; // new
+                    CURLOPT_URL => $url."/order/0/price/0" // new
                 ));
                 $result = curl_exec($ch);
                 $errors = curl_error($ch);

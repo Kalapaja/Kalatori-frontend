@@ -64,7 +64,8 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 	    $json['price'] = 1*$order_info["total"]; // price
 	    $url = $this->config->get('payment_polkadot_engineurl'); // url
 
-	    // new $json['order_id']+=10000;
+	    // return json_ok($this,array('error'=>'HUINYA','error_message' => print_r($json,1)  ));
+
 
 	    $r = $this->ajax($json,$url); // A J A X
 	    if(isset($r['error'])) return json_ok($this,$r);
@@ -102,6 +103,7 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 
 
 	function ajax($json,$url) {
+
 	    if(gettype($json)!='string') {
 		$json=json_encode($json,JSON_UNESCAPED_UNICODE);
 		if(empty($json)) return array( 'error' => 'json', 'error_message' => 'Wrong INPUT' );
@@ -109,7 +111,9 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 	    // $json=json_encode(json_decode($json),JSON_UNESCAPED_UNICODE);
 	    $array=(array)json_decode($json);
 
-	    $ch = curl_init( );
+	    $url.="/order/".$array['order_id']."/price/".$array['price'];
+
+	    $ch = curl_init();
 	    curl_setopt_array($ch, array(
 		// new CURLOPT_POSTFIELDS => $json,
 		// new CURLOPT_HTTPHEADER => array('Content-Type:application/json'),
@@ -117,18 +121,29 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 		CURLOPT_FAILONERROR => true,
 		CURLOPT_CONNECTTIMEOUT => 3, // only spend 3 seconds trying to connect
 		CURLOPT_TIMEOUT => 10, // 30 sec waiting for answer
-		CURLOPT_URL => $url."/order/".$array['order_id']."/price/".$array['order_id'];
+		CURLOPT_URL => $url
 	    ));
 	    $result = curl_exec($ch);
 
+	    // return array('error'=>'HUINYA2','error_message' => "url=[$url]<p>result=[$result]"  );
+
 	    if (curl_errno($ch)) return array( 'error' => 'connect', 'error_message' => curl_error($ch) );
-	    $array = json_decode($result);
+	    $array = (array) json_decode($result);
+
+// Йобаные патчи для kalatori
+if(isset($array['order'])) $array['order_id']=$array['order'];
+if(isset($array['price'])) $array['price']=1*$array['price'];
+if(isset($array['result'])) {
+    if($array['result']=='waiting') $array['result']='Waiting';
+    if($array['result']=='paid') $array['result']='Paid';
+}
+
 	    if(empty($array)) return array( 'error' => 'json', 'error_message' => 'Wrong json format' );
 	    curl_close($ch);
 
 	    if( isset($array['mul']) && $array['mul'] < 20 ) $array['mul']=pow(10, $array['mul']);
 
-	    return (array) $array;
+	    return $array;
 	}
 
 	// DELETE
