@@ -18,3 +18,18 @@ Implementation of the same plugin as in OpenCart4, but better and has more featu
 Minimalistic and neat store front.
 
 [demo deployment](https://dev-prestashop.zymologia.fi)
+
+# How to install plugin to OpenCart3 ?
+
+![1. In /admin go to Extensions-Installer and Upload polkadot.opencart3.ocmod.zip](/images/01 ADMIN go Extensions-Installer-Upload.webp)
+![2. Go to  Extensions-Extensions, select Payments](/images/02 ADMIN go Extensions-Payments.webp)
+![3. Find Polkadot, press EDIT button](/images/03 ADMIN go Polkadot-EDIT.webp)
+![4. Check Settins, press SAVE. Done!](/images/04 ADMIN settings press SAVE.webp)
+
+# How to pay with Polkadot?
+
+![1. Checkout, use method "Polkadot payment", select your wallet](/images/05 Seelect_wallet.webp)
+![2. Sign the transaction](/images/06 Sign transaction.webp)
+![3. Wait about 20-40 seconds, watch a prosess bar below screen](/images/07 Processbar 74 percents.webp)
+![4. Debug info: Finalized](/images/08 Finalized debug info.webp)
+![5. Done! Your order was placed!](/images/09 Order placed.webp)
