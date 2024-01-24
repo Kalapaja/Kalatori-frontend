@@ -33,3 +33,4 @@ Minimalistic and neat store front.
 ![3. Wait about 20-40 seconds, watch a prosess bar below screen](/images/07 Processbar 74 percents.webp)
 ![4. Debug info: Finalized](/images/08 Finalized debug info.webp)
 ![5. Done! Your order was placed!](/images/09 Order placed.webp)
+
