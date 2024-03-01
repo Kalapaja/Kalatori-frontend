@@ -3,7 +3,7 @@ Collection of frontends for Kalatori Substrate-based web shop. Example demo depl
 
 `bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice`
 
-# How to install plugin to different open-source web shops:
+# How to install plugin to different open-source webshops:
 - [OpenCart v3](/docs/opencart3_install.md)
 - [PrestaShop](/docs/prestashop_install.md)
 - [Woo-commerce](/docs/woocommerce_install.md)
