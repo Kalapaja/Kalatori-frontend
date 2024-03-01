@@ -5,7 +5,7 @@
 # How to install plugin to OpenCart3 ?
 
 1. In /admin go to Extensions-Installer and Upload polkadot.opencart3.ocmod.zip 
-![upload extension](/assets/opencart3/01%20ADMIN%20go%20Extensions-Installer-Upload.webp)
+![upload extension](./assets/opencart3/01%20ADMIN%20go%20Extensions-Installer-Upload.webp)
 
 2. Go to  Extensions-Extensions, select Payments 
 ![go to extension](/assets/opencart3/02%20ADMIN%20go%20Extensions-Payments.webp)
