@@ -275,16 +275,13 @@ add_action('plugins_loaded', function() {
 });
 
 
-
-
 add_action( 'woocommerce_store_api_checkout_order_processed', 'polkadot_callback' ); // ,10)
 // Function for `woocommerce_store_api_checkout_order_processed` action-hook.
 function polkadot_callback( $order ) {
 
-  $daemon_url = 'http://localhost:16726';
+    $daemon_url = 'http://localhost:16726';
 
-  // payment request
-  if(isset($_GET['ajax'])) {
+    // payment request
     $order_id = $order->get_id();
     $hash = WC()->cart->get_cart_hash();
     $price = $order->get_total();
@@ -296,21 +293,27 @@ function polkadot_callback( $order ) {
 	'price' => $price // * $_GET['mul']
     );
     $r=ajax($daemon_url."/order/".$json['order_id']."/price/".$json['price']);
-    foreach($r as $n=>$l) $json['daemon_'.$n]=$l;
 
-    $order->set_status('pending', 'Order is saved and pending payment.', true);
-    $order->save();
+    if(isset($_GET['ajax'])) {
+	foreach($r as $n=>$l) $json['daemon_'.$n]=$l;
+	$order->set_status('pending', 'Order is saved and pending payment.', true);
+	$order->save();
+	jdie($json);
+    }
 
-    jdie($json);
-  }
-    // $order->add_order_note( 'LLeo monster: complete' );
-    // $order->set_status( 'on-hold' );
-    // $order->payment_complete();
-    // $order->save();
-    // WC()->cart->subtotal
+    // не Ajax, реально кнопку нажали и снова проверили
+    if(strtolower($r['result'])=='paid') {
+	$order->add_order_note( 'Paid by DOT: success' );
+	// $order->set_status( 'on-hold' );
+	$order->payment_complete();
+	$order->save();
+	return true;
+    }
+
     http_response_code(500);
-    die('{"error":"kalatori payment"}');
-    return true;
+    die(print_r($r,1));
+    // die('{"error":"kalatori payment"}');
+    // return true;
     return false;
 }
 
@@ -345,9 +348,6 @@ function polkadot_callback( $order ) {
     $r = curl_exec($ch);
     if(curl_errno($ch) || empty($r)) return array('error'=>'connect','error_message'=>curl_error($ch),'url'=>$url);
 
-// file_put_contents("/home/WWW/shop-WooCommerce/www/wp-content/plugins/polkadot-payments-woocommerce/111.log",$r);
-
-
     $r = (array)json_decode($r);
     if(empty($r)) return array('error'=>'json','error_message'=>'Wrong json format','url'=>$url);
     curl_close($ch);
@@ -365,7 +365,6 @@ function polkadot_callback( $order ) {
   }
 
   function logs($s='') { }
-
 
 // https://woocommerce.zymologia.fi/wp-json/polkadot/v1/checkout-data
 
@@ -409,5 +408,3 @@ add_filter( 'woocommerce_valid_order_statuses_for_payment_complete',
 public function filter_add_authorize_order_status_for_payment_complete( $statuses ) {
 ><------>$statuses[] = str_replace( 'wc-', '', WC_Zipmoney_Payment_Gateway_Config::ZIP_ORDER_STATUS_AUTHORIZED_KEY
 */
-
-

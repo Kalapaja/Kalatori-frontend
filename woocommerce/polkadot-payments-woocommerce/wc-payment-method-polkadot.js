@@ -29,6 +29,9 @@
     var button = document.querySelector( '.wc-block-components-checkout-place-order-button' );
 
     button.onclick = async function(event) {
+	var paid=button.getAttribute('paid');
+	if(paid) return true; // продолжаем
+
 	event.preventDefault();
 	if(event.stopPropagation) event.stopPropagation();
 	if(event.stopImmediatePropagation) event.stopImmediatePropagation();
@@ -60,49 +63,15 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     ajax_checkout = async function(e) {
 	console.log('ajax_checkout');
 
-	DOT.onpaid = function(json){ alert('PAID!'); };
+	DOT.onpaid = function(json){
+	    var button = document.querySelector( '.wc-block-components-checkout-place-order-button' );
+	    button.setAttribute('paid','1');
+	    button.click();
+	    // alert('PAID!');
+	};
 
 	// переопределяем альтернативный AJAX для DOT-процедур
         DOT.AJAX_ALTERNATIVE = async function(url,func,s) {
@@ -165,10 +134,13 @@ wallet_start=function(){
 
     wallet_go=function(){
         console.log('wallet go');
-
 	if(typeof(DOT)!='object') { console.log('No DOT'); return; }
-	if(!DOT.dom('polkadot_work')) { console.log('No polkadot_work yet'); return setTimeout(function(){wallet_go()},200); }
-	if(DOT.inited) return; DOT.inited=1;
+	if(!DOT.dom('polkadot_work')) { console.log('No polkadot_work yet'); return setTimeout(function(){wallet_go()},500); }
+	if(DOT.inited) {
+	    console.log('dot inited');
+	    return;
+	}
+	DOT.inited=1;
 
         console.log('wallet go inited');
 
@@ -189,21 +161,11 @@ wallet_start=function(){
 	var warn="wc-block-store-notice wc-block-components-notice-banner is-warning is-dismissible";
 	var errr="wc-block-store-notice wc-block-components-notice-banner is-error is-dismissible";
 
-	if(!DOT.dom('WalletID')) DOT.dom('polkadot_work').innerHTML=
-// "<input type='button' onclick='ajax_checkout(this)' style='padding:40px;' value='T E S T'>"+
-"<p>Select your DOT-account \
-<span id='dotpay_wallet_finded'></span>\
-<div id='WalletID_load' style='display:none'><img src='"+DOT.ajaxm+"'> <font color='green'>loading...</font></div>\
-<div style='padding-left:30px;' id='WalletID'>\
-    <label style='display:block;text-align:left;'><input style='margin-right: 5px;' name='dot_addr' type='radio' value='QR'>QR-code</label>\
-    <div><input type='button' value='Open my Wallets' onclick='dot_onselect()'></div>\
-</div>\
-</div>"
-+"<div id='dotpay_info'></div>"
-+"<div class='"+warn+"' style='display:none' id='dotpay_console'></div>"
-;
+	// if(!DOT.dom('polkadot_work'))
+
+	DOT.class_warning=warn;
+	if(!DOT.dom('WalletID')) DOT.dom('polkadot_work').innerHTML="<img src='"+DOT.ajaxm+"'> loading plugin...";
 	DOT.init();
-	DOT.Talert('clear');
     };
 
     if(typeof(DOT)=='object') wallet_go();

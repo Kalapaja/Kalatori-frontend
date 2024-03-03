@@ -1,3 +1,5 @@
+var defaultMul = Math.pow(10, 12);
+
 DOT={
 
 debug: 1, // ТОЛЬКО ДЛЯ ОТЛАДКИ! ПОТОМ УБРАТЬ!
@@ -9,12 +11,12 @@ daemon: { // тут будет инфо, пришедшая от демона
 
 chain: { // тут будет инфо, запрошенное от блокчейна
     ss58Format: 0,
-    amountAdd: 1.02*10000000000,
+    amountAdd: 1.02*defaultMul,
     tokenDecimals: 10,
-    mul: 10000000000,
+    mul: defaultMul,
     tokenSymbol: "DOT",
-    existentialDeposit: 1*10000000000,
-    partialFee: 0.02*10000000000,
+    existentialDeposit: 1*defaultMul,
+    partialFee: 0.02*defaultMul,
 },
 
 cx: {}, // а тут инфо от магазина
@@ -207,13 +209,16 @@ daemon_get_info: async function() {
 		    return false;
 		}
 
+		// try to get wss-url for current node
 		if(json.daemon_wss) DOT.daemon.wss=json.daemon_wss;
 		else if(json.wss) DOT.daemon.wss=json.wss;
 		else {
-		    alert("Error connect to daemon");
-		    DOT.Ealert("Error connect to daemon");
+		    alert("Error connect to daemon: no wss");
+		    DOT.Ealert("Error connect to daemon: no wss");
 		    return false;
 		}
+
+		// try to get mul (planks in DOT)
 		if(json.daemon_mul) DOT.daemon.mul=json.daemon_mul;
 		else if(json.mul) DOT.daemon.mul=json.mul;
 
@@ -223,11 +228,18 @@ daemon_get_info: async function() {
 		    // ss58Format
 		    if(cp.ss58Format || cp.ss58Format===0) DOT.chain.ss58Format=cp.ss58Format;
 		    // mul
-		    if(cp.tokenDecimals) {
-			var x=cp.tokenDecimals.toHuman();
-			if(x && x[0]) DOT.chain.tokenDecimals=parseInt(x[0]);
-			if(DOT.chain.tokenDecimals) DOT.chain.mul=Math.pow(10, DOT.chain.tokenDecimals);
-		    } if(!DOT.chain.mul) DOT.chain.mul=DOT.daemon.mul;
+		    var x; if(cp.tokenDecimals // если есть tokenDecimals
+			&& ( x=cp.tokenDecimals.toHuman() ) // и если он обрабатывается
+			&& x[0] // и если в нем есть хотя бы объект 0
+			&& (DOT.chain.tokenDecimals=parseInt(x[0])) // и если удалось распарсить
+		    ) { // то с понтом дела его принять
+			DOT.chain.mul=Math.pow(10, DOT.chain.tokenDecimals);
+		    } else { // а иначе попробуем его взять из того, что прислал демон
+			if(DOT.daemon.mul) {
+			    DOT.chain.mul=DOT.daemon.mul;
+			    // DOT.chain.tokenDecimals=false; // ну, это нам не пригодится
+			} else return alert("Error: can't load mul (tokenDecimals)");
+		    }
 		    // имя блокчейна "DOT"
 		    if(cp.tokenSymbol) {
 			var x=cp.tokenSymbol.toHuman();
@@ -245,14 +257,16 @@ daemon_get_info: async function() {
 		    // на сколько должна превышать сумма
 		    DOT.chain.amountAdd = DOT.chain.partialFee + DOT.chain.existentialDeposit;
 
-		DOT.amount=DOT.cx.total * DOT.chain.mul;
+		DOT.amount=DOT.total() * DOT.chain.mul;
 		DOT.amount_human=Math.floor(DOT.amount/DOT.chain.mul*10000)/10000+' '+DOT.chain.tokenSymbol; // DOT.daemon.currency_name;
 
+		// debugger;
+
 		DOT.dom('dotpay_info').innerHTML=
-	        "Transferring "+DOT.indot( DOT.cx.total*DOT.chain.mul )
+	        "Transferring "+DOT.indot( DOT.total()*DOT.chain.mul )
 		+" would require approximately "+DOT.indot( DOT.chain.partialFee )
 		+" on top of that to cover transaction fees."
-		//    "Amount: "+DOT.indot( DOT.cx.total*DOT.chain.mul + DOT.chain.partialFee)
+		//    "Amount: "+DOT.indot( DOT.total()*DOT.chain.mul + DOT.chain.partialFee)
 		//    +"<br>Covers price of kit(s), transaction fee and deposit in your Polkadot account"
 		+"<br>&nbsp;";
 	    }
@@ -290,7 +304,6 @@ ajax_process_errors: function(s0) {
             }
 
             if( json.redirect ) { window.location = json.redirect; return false; }
-	    if( json.daemon_result=='Paid' && DOT.onpaid ) DOT.onpaid(json);
 	    return json;
 },
 
@@ -303,46 +316,50 @@ total: function() {
 },
 
 all_submit: function(y) {
-    if(!y) DOT.stoploopsubmit=0;
-    else if(DOT.stoploopsubmit) return;
+    if(!y) {
+	DOT.stoploopsubmit=0;
+	DOT.alert('clear');
+	DOT.Talert('clear');
+    } else if(DOT.stoploopsubmit) return;
 
-    if(!DOT.total()) return;
-    // if(cx) DOT.cx=cx; else
+    if(!DOT.total()) return alert('DOT plugin error 0801: empty total');
     var cx=DOT.cx;
-    DOT.alert('clear');
-    DOT.Talert('clear');
     DOT.button_off();
 
     if(!cx.id && cx.order_id) cx.id=DOT.cx.id=cx.order_id;
     if(!cx.id) return alert('DOT plugin error 0800: empty cx.id');
-    if(!cx.total) return alert('DOT plugin error 0801: empty cx.total');
     if(!cx.ajax_url) return alert('DOT plugin error 0802: empty cx.ajax_url');
 
-    var data = JSON.stringify({ order_id: cx.id, price: cx.total });
+    var data = JSON.stringify({ order_id: cx.id, price: DOT.total() });
 
     // можно указать свой альтернативный AJAX для особых уродцев типа WooCommerce
     DOT[( DOT.AJAX_ALTERNATIVE ? 'AJAX_ALTERNATIVE' : 'AJAX' )](
 	cx.ajax_url,
 	async function(s) {
 	    var json=DOT.ajax_process_errors(s); if(!json) return DOT.button_on();
+	    var ans = (''+json.daemon_result).toLowerCase(); // (waiting, paid)
 
-            if( json.daemon_result == 'Waiting' && json.daemon_pay_account && 1*json.price
+	    // Waiting
+            if( ans == 'waiting' && json.daemon_pay_account && 1*json.price
 	    ) {
                 json.my_account = cx.acc;
 		json.pay_account = json.daemon_pay_account;
-		    if(DOT.paidflag) {
-		        DOT.Talert('Ready! Waiting for daemon...');
-			setTimeout(function(x){ DOT.all_submit(1); },800);
-		        return;
-		    }
-		    DOT.pay(json);
-	    } else {
-		var s='';
-		for(var i in json) s+=i+' = ['+json[i]+"]\n";
-		DOT.Ealert('ERROR OPT:\n\n '+s);
-		DOT.button_on();
+		if(DOT.paidflag) {
+		    DOT.Talert('Ready! Waiting for daemon...');
+		    setTimeout(function(x){ DOT.all_submit(1); },800);
+		    return;
+		}
+		return DOT.pay(json);
 	    }
-	    // =================
+
+	    // Paid
+	    if( ans = 'paid' ) {
+		if(DOT.onpaid) return DOT.onpaid(json);
+		else return alert('Paid success. Ask admin, what can we do?');
+	    }
+
+	    DOT.Ealert('ERROR OPT:\n\n '+JSON.stringify(json));
+	    DOT.button_on();
 	},
 	data
     );
@@ -551,7 +568,7 @@ AJAX: function(url,opt,s) {
 		    var x = await DOT.api.query.system.account( json.pay_account );
 		    x=parseInt(x.data.free);
 		    document.querySelectorAll('.my_dot_balance').forEach((e)=>{e.innerHTML=DOT.indot(x)});
-		    if(x>= DOT.cx.total*DOT.chain.mul) {
+		    if(x>= DOT.total()*DOT.chain.mul) {
 			setTimeout(DOT.all_submit,1000);
 			if(DOT.rebalance_interval) clearInterval(DOT.rebalance_interval);
 		    }
@@ -581,10 +598,24 @@ AJAX: function(url,opt,s) {
     },
 
     et: 0,
+    class_warning: 'alert',
 
     init: async function() { // x = path
+
+	// init workplace if blank
+        if(!DOT.dom('WalletID') && DOT.dom('polkadot_work')) {
+	   DOT.dom('polkadot_work').innerHTML= // "<img src='"+DOT.ajaxm+"'> loading plugin...";
+            "<p>Select your DOT-account <span id='dotpay_wallet_finded'></span>"
+            +"<div id='WalletID_load' style='display:none'></div>"
+            +"<div id='WalletID' style='padding-left:30px;'></div>"
+            +"<div id='dotpay_info'></div>"
+            +"<div class='"+DOT.class_warning+"' style='display:none' id='dotpay_console'></div>";
+	}
+
+	DOT.Talert('clear');
+
 	// load JS - первая необходимая часть для кошельков, остальное загрузим позже для ускорения
-	await DOT.LOADS_promice([
+	if(DOT.mainjs) await DOT.LOADS_promice([
 	 DOT.mainjs+'bundle-polkadot-util.js',
 	 DOT.mainjs+'bundle-polkadot-util-crypto.js',
 	 DOT.mainjs+'bundle-polkadot-extension-dapp.js',
@@ -697,7 +728,7 @@ AJAX: function(url,opt,s) {
 	    var w=e.closest('LABEL');
 	    w.setAttribute('balanced',1);
 
-	    if( bal < (DOT.cx.total*DOT.chain.mul + DOT.chain.amountAdd) ) {
+	    if( bal < (DOT.total()*DOT.chain.mul + DOT.chain.amountAdd) ) {
 		w.style.opacity='0.5';
 		w.querySelector('INPUT').disabled=true;
 	    }
