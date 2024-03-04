@@ -72,7 +72,7 @@ presta_init: function(cx) {
     // перехатываем только нашу FORM.onsubmit
     var e=document.querySelector('FORM[action*="'+cx.module_name+'"]');
     if(!e) return DOT.error("Prestashop DOT plugin: Design error!");
-    e.onsubmit=function(x) { DOT.all_submit(); };
+    e.onsubmit=function(x) { DOT.all_submit(); return false; };
 
 /*
     // debug option
@@ -269,6 +269,8 @@ ajax_process_errors: function(s0) {
 	    }
 
 	    try { var json=JSON.parse(s); } catch(e) { return DOT.error("Json error: ["+DOT.h(s0)+"]"); }
+	    // патчим старый формат
+	    for(var n in json) { if(n.substring(0,7)=='daemon_') { json[n.substring(7)]=json[n]; } }
 
 	    if(json.error) {
 
@@ -318,9 +320,6 @@ all_submit: async function(y) {
     // можно указать свой альтернативный AJAX для особых уродцев типа WooCommerce
     var s = await DOT[( DOT.AJAX_ALTERNATIVE ? 'AJAX_ALTERNATIVE' : 'AJAX' )]( cx.ajax_url, data );
 
-//    DOT[( DOT.AJAX_ALTERNATIVE ? 'AJAX_ALTERNATIVE' : 'AJAX' )](
-//	cx.ajax_url,
-//	async function(s) {
 	    var json=DOT.ajax_process_errors(s); if(!json) return false;
 	    var ans = (''+json.result).toLowerCase(); // (waiting, paid)
 
@@ -338,16 +337,12 @@ all_submit: async function(y) {
 	    }
 
 	    // Paid
-	    if( ans = 'paid' ) {
+	    if( ans == 'paid' ) {
 		if(DOT.onpaid) { DOT.onpaid(json); return true; }
         	else return DOT.error('Paid success. What?! Ask admin, what can we do now?');
 	    }
-
+// debugger;
 	    return DOT.error('ERROR OPT:\n\n '+JSON.stringify(json));
-//	},
-//	data
-//    );
-//    return false;
   },
 
 
