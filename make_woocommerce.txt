@@ -1,0 +1,28 @@
+###
+### List of files for create module.zip
+###
+### file_from | file_to
+###
+
+ZIP | wc_kalatori_{date}.zip
+DIR | woocommerce_release/polkadot-payments-woocommerce
+
+###
+
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | polkadot-payments-woocommerce/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | polkadot-payments-woocommerce/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | polkadot-payments-woocommerce/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | polkadot-payments-woocommerce/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | polkadot-payments-woocommerce/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | polkadot-payments-woocommerce/*
+
+../../common/img/Alzymologist_.png | polkadot-payments-woocommerce/image/*
+../../common/img/polkadot.webp     | polkadot-payments-woocommerce/image/*
+../../common/img/ajaxm.gif         | polkadot-payments-woocommerce/image/*
+
+../../common/identicon.js		| polkadot-payments-woocommerce/*
+../../common/DOT.js			| polkadot-payments-woocommerce/*
+
+Polkadot.class.php			| polkadot-payments-woocommerce/*
+polkadot-payments-woocommerce.php	| polkadot-payments-woocommerce/*
+wc-payment-method-polkadot.js		| polkadot-payments-woocommerce/*

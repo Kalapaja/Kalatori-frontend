@@ -2,8 +2,7 @@ var defaultMul = Math.pow(10, 12);
 
 DOT={
 
-debug: 1, // ТОЛЬКО ДЛЯ ОТЛАДКИ! ПОТОМ УБРАТЬ!
-
+debug: 0, // ТОЛЬКО ДЛЯ ОТЛАДКИ! ПОТОМ УБРАТЬ!
 
 daemon: { // тут будет инфо, пришедшая от демона
     currency_name: 'DOT',
@@ -209,7 +208,6 @@ daemon_get_info: async function() {
 		    return false;
 		}
 
-		// try to get wss-url for current node
 		if(json.daemon_wss) DOT.daemon.wss=json.daemon_wss;
 		else if(json.wss) DOT.daemon.wss=json.wss;
 		else {
@@ -217,50 +215,52 @@ daemon_get_info: async function() {
 		    DOT.Ealert("Error connect to daemon: no wss");
 		    return false;
 		}
-
-		// try to get mul (planks in DOT)
 		if(json.daemon_mul) DOT.daemon.mul=json.daemon_mul;
 		else if(json.mul) DOT.daemon.mul=json.mul;
 
 		    // пытаемся получить
 		    await DOT.connect();
 		    const cp = await DOT.api.rpc.system.properties();
+
 		    // ss58Format
 		    if(cp.ss58Format || cp.ss58Format===0) DOT.chain.ss58Format=cp.ss58Format;
-		    // mul
-		    var x; if(cp.tokenDecimals // если есть tokenDecimals
-			&& ( x=cp.tokenDecimals.toHuman() ) // и если он обрабатывается
-			&& x[0] // и если в нем есть хотя бы объект 0
-			&& (DOT.chain.tokenDecimals=parseInt(x[0])) // и если удалось распарсить
-		    ) { // то с понтом дела его принять
-			DOT.chain.mul=Math.pow(10, DOT.chain.tokenDecimals);
-		    } else { // а иначе попробуем его взять из того, что прислал демон
-			if(DOT.daemon.mul) {
-			    DOT.chain.mul=DOT.daemon.mul;
-			    // DOT.chain.tokenDecimals=false; // ну, это нам не пригодится
-			} else return alert("Error: can't load mul (tokenDecimals)");
-		    }
+
+                    // try to get mul (planks in DOT)
+            	    var x; if(cp.tokenDecimals // если есть tokenDecimals
+                       && ( x=cp.tokenDecimals.toHuman() ) // и если он обрабатывается
+                       && x[0] // и если в нем есть хотя бы объект 0
+                       && (DOT.chain.tokenDecimals=parseInt(x[0])) // и если удалось распарсить
+                    ) { // то с понтом дела его принять
+                       DOT.chain.mul=Math.pow(10, DOT.chain.tokenDecimals);
+                    } else { // а иначе попробуем его взять из того, что прислал демон
+                       if(DOT.daemon.mul) {
+                           DOT.chain.mul=DOT.daemon.mul;
+                           // DOT.chain.tokenDecimals=false; // ну, это нам не пригодится
+                       } else return alert("Error: can't load mul (tokenDecimals)");
+                    }
+
 		    // имя блокчейна "DOT"
 		    if(cp.tokenSymbol) {
 			var x=cp.tokenSymbol.toHuman();
 			if(x && x[0]) DOT.chain.tokenSymbol = x[0];
 		    }
-		    // цена транзакции
+
+		    // величина депозита
 		    const existentialDeposit = await DOT.api.consts.balances.existentialDeposit;
 		    DOT.chain.existentialDeposit = parseInt(existentialDeposit);
 		    if(!DOT.chain.existentialDeposit) DOT.chain.existentialDeposit=1*DOT.chain.mul;
+
 		    // цена транзакции
 		    const addr = "0x80723effd95bfea4c175a1ceed58e4b4b6bd2609a709e22d8d7a415ce263863f";
 		    const { partialFee } = await DOT.api.tx.balances.transferKeepAlive(addr, 30*DOT.chain.mul).paymentInfo(addr);
 		    DOT.chain.partialFee = parseInt(partialFee);
 		    if(!DOT.chain.partialFee) DOT.chain.partialFee=0.02*DOT.chain.mul;
+
 		    // на сколько должна превышать сумма
 		    DOT.chain.amountAdd = DOT.chain.partialFee + DOT.chain.existentialDeposit;
 
 		DOT.amount=DOT.total() * DOT.chain.mul;
 		DOT.amount_human=Math.floor(DOT.amount/DOT.chain.mul*10000)/10000+' '+DOT.chain.tokenSymbol; // DOT.daemon.currency_name;
-
-		// debugger;
 
 		DOT.dom('dotpay_info').innerHTML=
 	        "Transferring "+DOT.indot( DOT.total()*DOT.chain.mul )
@@ -304,6 +304,7 @@ ajax_process_errors: function(s0) {
             }
 
             if( json.redirect ) { window.location = json.redirect; return false; }
+
 	    return json;
 },
 
@@ -339,23 +340,22 @@ all_submit: function(y) {
 	    var json=DOT.ajax_process_errors(s); if(!json) return DOT.button_on();
 	    var ans = (''+json.daemon_result).toLowerCase(); // (waiting, paid)
 
-	    // Waiting
-            if( ans == 'waiting' && json.daemon_pay_account && 1*json.price
-	    ) {
+            // Waiting
+            if( ans == 'waiting' && json.daemon_pay_account && 1*json.price ) {
                 json.my_account = cx.acc;
 		json.pay_account = json.daemon_pay_account;
-		if(DOT.paidflag) {
-		    DOT.Talert('Ready! Waiting for daemon...');
-		    setTimeout(function(x){ DOT.all_submit(1); },800);
-		    return;
-		}
+		    if(DOT.paidflag) {
+		        DOT.Talert('Ready! Waiting for daemon...');
+			setTimeout(function(x){ DOT.all_submit(1); },800);
+		        return;
+		    }
 		return DOT.pay(json);
 	    }
 
 	    // Paid
 	    if( ans = 'paid' ) {
 		if(DOT.onpaid) return DOT.onpaid(json);
-		else return alert('Paid success. Ask admin, what can we do?');
+        	else return alert('Paid success. Ask admin, what can we do?');
 	    }
 
 	    DOT.Ealert('ERROR OPT:\n\n '+JSON.stringify(json));
@@ -598,13 +598,14 @@ AJAX: function(url,opt,s) {
     },
 
     et: 0,
+
     class_warning: 'alert',
 
-    init: async function() { // x = path
+    init: async function() {
 
 	// init workplace if blank
-        if(!DOT.dom('WalletID') && DOT.dom('polkadot_work')) {
-	   DOT.dom('polkadot_work').innerHTML= // "<img src='"+DOT.ajaxm+"'> loading plugin...";
+	if(!DOT.dom('WalletID') && DOT.dom('polkadot_work')) {
+            DOT.dom('polkadot_work').innerHTML= // "<img src='"+DOT.ajaxm+"'> loading plugin...";
             "<p>Select your DOT-account <span id='dotpay_wallet_finded'></span>"
             +"<div id='WalletID_load' style='display:none'></div>"
             +"<div id='WalletID' style='padding-left:30px;'></div>"
