@@ -1,4 +1,7 @@
 <section>
+    <div id='polkadot_work'><img src='{$module_host nofilter}/img/ajaxm.gif'> Loading plugin</div>
+
+<!--
   <p>Select your DOT-account <span id='dotpay_wallet_finded'></span>
 
   <div class="form-group">
@@ -14,7 +17,10 @@
 <div id='dotpay_info'></div>
 <div id='dotpay_console'></div>
 <div id='dotpay_console_test'></div>
+-->
+
 </section>
+
 
 <script>
     var s=document.createElement('script');
@@ -29,7 +35,7 @@
 	    ajax_host:	 "{$ajax_host nofilter}",
 	    total:	 "{$total nofilter}",
 	    module_name: "{$module_name nofilter}",
-	    id:		 "{$id nofilter}",
+	    order_id:	 "{$order_id nofilter}",
 	    shop_id:	 "{$shop_id nofilter}",
 	    products:	 "{$products nofilter}",
 	});

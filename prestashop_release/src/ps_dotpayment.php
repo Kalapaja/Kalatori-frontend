@@ -33,15 +33,6 @@ class Ps_Dotpayment extends PaymentModule
     public $details;
     public $daemon;
     public $address;
-//    public $extra_mail_vars;
-    /**
-     * @var int
-     */
-//    public $is_eu_compatible;
-    /**
-     * @var false|int
-     */
-//    public $reservation_days;
 
     public function __construct()
     {
@@ -59,28 +50,10 @@ class Ps_Dotpayment extends PaymentModule
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
 
-/*
-        $config = Configuration::getMultiple(['DOT_DETAILS', 'DOTONER', 'DOT_ADDRESS', 'DOT_RESERVATION_DAYS']);
-        if (!empty($config['DOTONER'])) {
-            $this->oner = $config['DOToNER'];
-        }
-        if (!empty($config['DOT_DETAILS'])) {
-            $this->details = $config['DOT_DETAILS'];
-        }
-        if (!empty($config['DOT_ADDRESS'])) {
-            $this->address = $config['DOT_ADDRESS'];
-        }
-        if (!empty($config['DOT_RESERVATION_DAYS'])) {
-            $this->reservation_days = $config['DOT_RESERVATION_DAYS'];
-        }
-*/
-
 	$this->fields_need=['DOT_NAME','DOT_URL'];
 
         $config = Configuration::getMultiple($this->fields_need);
 	foreach($this->fields_need as $l) $this->{$l} = ( empty($config[$l]) ? $this->{$l.'_DEFAULT'} : $config[$l] );
-
-	// die(print_r($this,1));
 
         $this->bootstrap = true;
         parent::__construct();
@@ -100,37 +73,6 @@ class Ps_Dotpayment extends PaymentModule
         if (!count(Currency::checkPaymentCurrencies($this->id)) && $this->active) {
             $this->warning = $this->trans('No currency has been set for this module.', [], 'Modules.Dotpayment.Admin');
         }
-
-/*
-        $this->extra_mail_vars = [
-            '{dot_daemon}' => $this->daemon,
-//            '{dot_details}' => nl2br($this->details ?: ''),
-//            '{dot_address}' => nl2br($this->address ?: ''),
-        ];
-*/
-
-
-/*
-$e=explode(' ',"PS_OS_CHEQUE PS_OS_PAYMENT PS_OS_PREPARATION PS_OS_SHIPPING PS_OS_DELIVERED PS_OS_CANCELED PS_OS_REFUND PS_OS_ERROR PS_OS_OUTOFSTOCK PS_OS_BANKWIRE PS_OS_PAYPAL PS_OS_WS_PAYMENT");
-$s=""; foreach($e as $l) $s.="<br>$l = ".Configuration::get($l);
-die($s
-// "PS_OS_BANKWIRE". Configuration::get('PS_OS_BANKWIRE')
-);
-
-PS_OS_CHEQUE = 1
-PS_OS_PAYMENT = 2
-PS_OS_PREPARATION = 3
-PS_OS_SHIPPING = 4
-PS_OS_DELIVERED = 5
-PS_OS_CANCELED = 6
-PS_OS_REFUND = 7
-PS_OS_ERROR = 8
-PS_OS_OUTOFSTOCK = 9
-PS_OS_BANKWIRE = 10
-PS_OS_PAYPAL =
-PS_OS_WS_PAYMENT = 11
-*/
-
 
     }
 
@@ -381,39 +323,11 @@ PS_OS_WS_PAYMENT = 11
         $a=array();
         foreach($this->fields_need as $l) $a[$l] = Tools::getValue($l, $this->{$l});
         return $a;
-
-/*
-        $custom_text = [];
-        $languages = Language::getLanguages(false);
-        foreach ($languages as $lang) {
-            $custom_text[$lang['id_lang']] = Tools::getValue(
-                'DOT_CUSTOM_TEXT_' . $lang['id_lang'],
-                Configuration::get('DOT_CUSTOM_TEXT', $lang['id_lang'])
-            );
-        }
-
-        return [
-
-
-            'DOT_NAME' => Tools::getValue('DOT_NAME', $this->details),
-            'DOT_URL' => Tools::getValue('DOT_URL', $this->details),
-
-            'DOT_DAEMON' => Tools::getValue('DOT_DAEMON', $this->details),
-            'DOT_CUSTOM_TEXT' => $custom_text,
-            self::FLAG_DISPLAY_PAYMENT_INVITE => Tools::getValue(
-                self::FLAG_DISPLAY_PAYMENT_INVITE,
-                Configuration::get(self::FLAG_DISPLAY_PAYMENT_INVITE)
-            ),
-        ];
-*/
     }
 
     public function getTemplateVarInfos()
     {
         $cart = $this->context->cart;
-
-// die("<pre>".print_r($cart,1));
-
 
         $total = sprintf(
             $this->trans('%1$s (tax incl.)', [], 'Modules.Dotpayment.Shop'),
@@ -434,7 +348,7 @@ PS_OS_WS_PAYMENT = 11
 	    'module_name' => $this->name,
 	    'module_host' => $this->_path . "views",
 	    'ajax_host' => $this->context->link->getModuleLink($this->name, 'ajax', [], true),
-	    'id' => $cart->id,
+	    'order_id' => $cart->id,
 	    'shop_id' => $cart->shop_id,
 //	    'products' => sizeof($cart->'_products:protected'),
 //	    'products' => sizeof($cart->_products),

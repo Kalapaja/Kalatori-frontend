@@ -4,29 +4,35 @@
 ### file_from | file_to
 ###
 
-../../common/img/logo.png | ps_dotpayment/*
-composer.lock      | ps_dotpayment/*
-ps_dotpayment.php  | ps_dotpayment/*
-config.xml         | ps_dotpayment/*
-composer.json      | ps_dotpayment/*
+ZIP | ps_kalatori_{date}.zip
+DIR | prestashop_release/src
 
-views/templates/front/dotpay.tpl | ps_dotpayment/views/templates/front/*
-views/templates/hook/infos.tpl   | ps_dotpayment/views/templates/hook/*
-
-../../common/DOT.js		| ps_dotpayment/views/js/*
-../../common/identicon.js		| ps_dotpayment/views/js/*
-
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | ps_dotpayment/views/js/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | ps_dotpayment/views/js/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | ps_dotpayment/views/js/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | ps_dotpayment/views/js/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | ps_dotpayment/views/js/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | ps_dotpayment/views/js/*
-
+../../common/img/logo.png 	   | ps_dotpayment/*
+../../common/DOT.js		   | ps_dotpayment/views/js/*
+../../common/identicon.js	   | ps_dotpayment/views/js/*
 ../../common/img/Alzymologist_.png | ps_dotpayment/views/img/*
 ../../common/img/polkadot.webp     | ps_dotpayment/views/img/*
-../../common/img/ajaxm.gif         | ps_dotpayment/views/img/*
 
-controllers/front/ajax.php         | ps_dotpayment/controllers/front/*
-controllers/front/payment.php      | ps_dotpayment/controllers/front/*
-controllers/front/validation.php   | ps_dotpayment/controllers/front/*
+composer.lock     | ps_dotpayment/*
+ps_dotpayment.php | ps_dotpayment/*
+config.xml        | ps_dotpayment/*
+composer.json     | ps_dotpayment/*
+dotpay.tpl        | ps_dotpayment/views/templates/front/*
+infos.tpl         | ps_dotpayment/views/templates/hook/*
+ajax.php          | ps_dotpayment/controllers/front/*
+payment.php       | ps_dotpayment/controllers/front/*
+validation.php    | ps_dotpayment/controllers/front/*
+
+../../common/temp-upload/bundle-polkadot-api.js             | ps_dotpayment/views/js/*
+../../common/temp-upload/bundle-polkadot-extension-dapp.js  | ps_dotpayment/views/js/*
+../../common/temp-upload/bundle-polkadot-keyring.js         | ps_dotpayment/views/js/*
+../../common/temp-upload/bundle-polkadot-types.js           | ps_dotpayment/views/js/*
+../../common/temp-upload/bundle-polkadot-util-crypto.js     | ps_dotpayment/views/js/*
+../../common/temp-upload/bundle-polkadot-util.js            | ps_dotpayment/views/js/*
+
+#https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | ps_dotpayment/views/js/*
+#https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | ps_dotpayment/views/js/*
+#https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | ps_dotpayment/views/js/*
+#https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | ps_dotpayment/views/js/*
+#https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | ps_dotpayment/views/js/*
+#https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | ps_dotpayment/views/js/*

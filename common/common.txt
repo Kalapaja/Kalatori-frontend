@@ -1,0 +1,16 @@
+###
+### List of files for create module.zip
+###
+### file_from | file_to
+###
+### Download new polkadot.js first
+###
+
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | common/temp-upload/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | common/temp-upload/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | common/temp-upload/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | common/temp-upload/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | common/temp-upload/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | common/temp-upload/*
+
+

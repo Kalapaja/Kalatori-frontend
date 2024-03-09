@@ -4,26 +4,34 @@
 ### file_from | file_to
 ###
 
-admin-controller-polkadot.php   | upload/admin/controller/extension/payment/polkadot.php
-admin-language-polkadot.php     | upload/admin/language/en-gb/extension/payment/polkadot.php
-admin-template.twig             | upload/admin/view/template/extension/payment/polkadot.twig
+ZIP | oc3_kalatori_{date}.ocmod.zip
+DIR | opencart3_release/src
 
-catalog-controller.php          | upload/catalog/controller/extension/payment/polkadot.php
-catalog-language.php            | upload/catalog/language/en-gb/extension/payment/polkadot.php
-catalog-model.php               | upload/catalog/model/extension/payment/polkadot.php
-catalog-template.twig           | upload/catalog/view/theme/default/template/extension/payment/polkadot.twig
+###
 
-../../common/img/ajaxm.gif           | upload/catalog/view/theme/default/image/polkadot/*
-../../common/img/Alzymologist_.png   | upload/catalog/view/theme/default/image/polkadot/*
-../../common/img/polkadot.webp       | upload/catalog/view/theme/default/image/polkadot/*
+admin-controller-polkadot.php       | upload/admin/controller/extension/payment/polkadot.php
+admin-language-polkadot.php         | upload/admin/language/en-gb/extension/payment/polkadot.php
+admin-template.twig                 | upload/admin/view/template/extension/payment/polkadot.twig
+catalog-controller.php              | upload/catalog/controller/extension/payment/polkadot.php
+catalog-language.php                | upload/catalog/language/en-gb/extension/payment/polkadot.php
+catalog-model.php                   | upload/catalog/model/extension/payment/polkadot.php
+catalog-template.twig               | upload/catalog/view/theme/default/template/extension/payment/polkadot.twig
 
-../../common/DOT.js                                     | upload/catalog/view/javascript/polkadot/*
+../../common/img/Alzymologist_.png  | upload/catalog/view/theme/default/image/polkadot/*
+../../common/img/polkadot.webp      | upload/catalog/view/theme/default/image/polkadot/*
+../../common/DOT.js                 | upload/catalog/view/javascript/polkadot/*
+../../common/identicon.js           | upload/catalog/view/javascript/polkadot/*
 
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | upload/catalog/view/javascript/polkadot/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | upload/catalog/view/javascript/polkadot/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | upload/catalog/view/javascript/polkadot/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | upload/catalog/view/javascript/polkadot/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | upload/catalog/view/javascript/polkadot/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | upload/catalog/view/javascript/polkadot/*
+../../common/temp-upload/bundle-polkadot-api.js             | upload/catalog/view/javascript/polkadot/*
+../../common/temp-upload/bundle-polkadot-extension-dapp.js  | upload/catalog/view/javascript/polkadot/*
+../../common/temp-upload/bundle-polkadot-keyring.js         | upload/catalog/view/javascript/polkadot/*
+../../common/temp-upload/bundle-polkadot-types.js           | upload/catalog/view/javascript/polkadot/*
+../../common/temp-upload/bundle-polkadot-util-crypto.js     | upload/catalog/view/javascript/polkadot/*
+../../common/temp-upload/bundle-polkadot-util.js            | upload/catalog/view/javascript/polkadot/*
 
-../../common/identicon.js                      | upload/catalog/view/javascript/polkadot/*
+# https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | upload/catalog/view/javascript/polkadot/*
+# https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | upload/catalog/view/javascript/polkadot/*
+# https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | upload/catalog/view/javascript/polkadot/*
+# https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | upload/catalog/view/javascript/polkadot/*
+# https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | upload/catalog/view/javascript/polkadot/*
+# https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | upload/catalog/view/javascript/polkadot/*
