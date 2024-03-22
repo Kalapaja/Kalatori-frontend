@@ -13,4 +13,5 @@ https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkado
 https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | common/temp-upload/*
 https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | common/temp-upload/*
 
-
+# QR-code
+https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js | common/temp-upload/*

@@ -17,6 +17,7 @@ catalog-language.php                | upload/catalog/language/en-gb/extension/pa
 catalog-model.php                   | upload/catalog/model/extension/payment/polkadot.php
 catalog-template.twig               | upload/catalog/view/theme/default/template/extension/payment/polkadot.twig
 
+../../common/img/ajaxm.gif  	| upload/catalog/view/theme/default/image/polkadot/*
 ../../common/img/Alzymologist_.png  | upload/catalog/view/theme/default/image/polkadot/*
 ../../common/img/polkadot.webp      | upload/catalog/view/theme/default/image/polkadot/*
 ../../common/DOT.js                 | upload/catalog/view/javascript/polkadot/*
@@ -28,6 +29,8 @@ catalog-template.twig               | upload/catalog/view/theme/default/template
 ../../common/temp-upload/bundle-polkadot-types.js           | upload/catalog/view/javascript/polkadot/*
 ../../common/temp-upload/bundle-polkadot-util-crypto.js     | upload/catalog/view/javascript/polkadot/*
 ../../common/temp-upload/bundle-polkadot-util.js            | upload/catalog/view/javascript/polkadot/*
+
+../../common/temp-upload/qrcode.min.js | upload/catalog/view/javascript/polkadot/*
 
 # https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | upload/catalog/view/javascript/polkadot/*
 # https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | upload/catalog/view/javascript/polkadot/*

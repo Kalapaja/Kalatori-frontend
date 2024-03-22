@@ -1,5 +1,3 @@
-var defaultMul = Math.pow(10, 12);
-
 DOT={
 
 debug: 0, // ТОЛЬКО ДЛЯ ОТЛАДКИ! ПОТОМ УБРАТЬ!
@@ -10,12 +8,12 @@ daemon: { // тут будет инфо, пришедшая от демона
 
 chain: { // тут будет инфо, запрошенное от блокчейна
     ss58Format: 0,
-    amountAdd: 1.02*defaultMul,
-    tokenDecimals: 10,
-    mul: defaultMul,
-    tokenSymbol: "DOT",
-    existentialDeposit: 1*defaultMul,
-    partialFee: 0.02*defaultMul,
+    amountAdd: false, // 1.02*defaultMul,
+    tokenDecimals: false,
+    mul: false, // defaultMul,
+    tokenSymbol: "ERR",
+    existentialDeposit: false, // 1*defaultMul,
+    partialFee: false, // 0.02*defaultMul,
 },
 
 cx: {}, // а тут инфо от магазина
@@ -81,16 +79,46 @@ magento_init: function(cx) {
     DOT.init();
 },
 
-opencart3_run: function(path) {
+opencart3_init: function(cx) {
     DOT.store = 'opencart3';
     DOT.button_on=function(){ $('#button-confirm').button('reset'); };
     DOT.button_off=function(){ $('#button-confirm').button('loading'); };
-    DOT.mainjs=path;
+
+    DOT.class_warning=cx.class_warning;
+    DOT.class_error='';
+    DOT.class_ok=cx.class_ok;
+
+    DOT.mainjs=cx.wpath+"catalog/view/javascript/polkadot/";
+    DOT.mainimg=cx.wpath+"catalog/view/theme/default/image/polkadot/";
+
+    DOT.cx=cx;
+
+/*
+    var e = DOT.dom('form-polkadot').elements;
+    DOT.cx.order_id = e.order_id.value;
+    DOT.cx.total = e.total.value;
+    DOT.cx.currency = e.currency.value;
+    DOT.cx.ajax_url = e.ajax_url.value;
+    DOT.cx.success_callback = e.success_callback.value;
+    DOT.cx.cancel_callback = e.cancel_callback.value;
+
+//    debugger;
+//    console.log(DOT.cx); // Выведет значение order_id
+
+<input type='hidden' name='order_id' value='195'>
+<input type='hidden' name='total' value='4146.716'>
+<input type='hidden' name='wss' value='http://localhost:16726'>
+<input type='hidden' name='ajax_url' value='https://opencart3.zymologia.fi/index.php?route=extension/payment/polkadot/confirm&user_token=9pg
+<input type='hidden' name='currency' value='DOT'>
+<input type='hidden' name='merchant' value=''>
+    <input type='hidden' name='success_callback' value='https://opencart3.zymologia.fi/index.php?route=checkout/success'>
+    <input type='hidden' name='cancel_callback' value='https://opencart3.zymologia.fi/index.php?route=checkout/checkout'>
+*/
     DOT.init();
 },
 
 opencart3_submit: function() {
-    Array.from(DOT.dom('form-polkadot').elements).forEach((e) => { const { name,value } = e; DOT.cx[name]=value; });
+    // Array.from(DOT.dom('form-polkadot').elements).forEach((e) => { const { name,value } = e; DOT.cx[name]=value; });
     return DOT.all_submit();
 },
 
@@ -122,8 +150,6 @@ presta_init: function(cx) {
 
     DOT.cx=cx;
     DOT.mainjs = cx.wpath+'/js/';
-
-    // DOT.cx.ajax_url+="?order_id="+(DOT.cx.order_id)+"&total="+DOT.total();
 
     // определяем процедуру включения основной платежной кнопки
     DOT.button_on=function() {
@@ -267,6 +293,13 @@ selected_acc: function() {
 },
 
 
+is_ah: function() { // это AccetHub ?
+    if( DOT.daemon.wss.indexOf('-ah') < 0 ) return false;
+    DOT.daemon.accethub_id = 1337; // USDC — 1337 USDT — 1984
+    DOT.daemon.accethub_name = "USDC";
+    return DOT.daemon.accethub_id;
+},
+
 daemon_get_info: async function() {
 
     var data = JSON.stringify({ order_id: 0, price: 0 });
@@ -293,12 +326,6 @@ daemon_get_info: async function() {
     if(json.store_order_id) DOT.cx.order_id = json.store_order_id;
     if(json.store_currency) DOT.cx.currency = json.store_currency;
 
-    // Кстати, а не оплачен ли уже оказался наш ордер?
-    if( ajax == 'payment' ) {
-	if( json.pay_account ) DOT.setPayAccount(json.pay_account); // так может и платежный аккаунт уже известен?
-	if( (''+json.result).toLowerCase() == 'paid' ) { DOT.onpaid(json); return false; }
-    }
-
     // Вот оно самое главное, за чем мы ходили на бэкенд
     if(json.wss) DOT.daemon.wss=json.wss;
     else {
@@ -307,63 +334,77 @@ daemon_get_info: async function() {
     }
 
     // получили от демона mul?
-    if((json.mul=parseInt(json.mul))) DOT.daemon.mul = ( json.mul<20 ? Math.pow(10, json.mul) : json.mul );
-    else return DOT.error('Set KALATORI_DECIMALS in daemon config!');
+    if((json.mul=parseInt(json.mul))) DOT.daemon.mul = ( json.mul<20 ? 10**json.mul : json.mul );
 
-    // пытаемся получить
+    // пытаемся устновить соединение с блокчейном
     await DOT.connect();
-    const cp = await DOT.api.rpc.system.properties();
 
-    // ss58Format
-    if(cp.ss58Format || cp.ss58Format===0) {
-	DOT.chain.ss58Format=cp.ss58Format;
+    var cp, ah=DOT.is_ah();
+    if( ah ) { // это ASSETHUB!!!
+	cp = await DOT.api.query.assets.metadata(ah);
+	if(!cp || !(cp=cp.toHuman())) return DOT.error("Asset toHuman");
+	// Decimals
+	DOT.chain.tokenDecimals = parseInt(cp.decimals); // decimals: "6"
+	// chain name "DOT"
+	DOT.chain.name = cp.name; // "USD Coin"
+	DOT.chain.tokenSymbol = cp.symbol; // "USDC"
+	// величина депозита
+	cp = await DOT.api.query.assets.asset(parseInt(DOT.daemon.accethub_id));
+	if(cp && (cp=cp.toHuman()) ) DOT.chain.existentialDeposit = parseInt(cp.minBalance); // minBalance 70,000
+    } else {
+	cp = await DOT.api.rpc.system.properties();
+        // ss58Format
+        if(cp.ss58Format || cp.ss58Format===0) DOT.chain.ss58Format=parseInt( cp.ss58Format );
+        // try to get Decimals
+        var x;
+	if(cp.tokenDecimals && ( x=cp.tokenDecimals.toHuman() ) && x[0] ) DOT.chain.tokenDecimals=parseInt(x[0]);
+	// chain name "DOT"
+	if(cp.tokenSymbol && (x=cp.tokenSymbol.toHuman()) && x[0]) DOT.chain.tokenSymbol = x[0];
+	// величина депозита
+	DOT.chain.existentialDeposit = parseInt( await DOT.api.consts.balances.existentialDeposit );
     }
 
-    // try to get mul (planks in DOT)
-    var x; if(cp.tokenDecimals // если есть tokenDecimals
-	&& ( x=cp.tokenDecimals.toHuman() ) // и если он обрабатывается
-	&& x[0] // и если в нем есть хотя бы объект 0
-	&& (DOT.chain.tokenDecimals=parseInt(x[0])) // и если удалось распарсить
-    ) { // то с понтом дела его принять
-	DOT.chain.mul=Math.pow(10, DOT.chain.tokenDecimals);
-	if(DOT.daemon.mul != DOT.chain.mul) return DOT.error('Set KALATORI_DECIMALS="'+DOT.chain.tokenDecimals+'" in daemon config!');
-    } else { // а иначе берем тот, что прислал демон
-	DOT.chain.mul=DOT.daemon.mul;
+    if(	DOT.chain.tokenDecimals ) { // и если удалось принять Decimals
+	DOT.chain.mul = 10 ** DOT.chain.tokenDecimals;
+	if(DOT.daemon.mul && DOT.daemon.mul != DOT.chain.mul) return DOT.error('Set KALATORI_DECIMALS="'+DOT.chain.tokenDecimals+'" in daemon config!');
+    } else { // а иначе берем тот, что прислал демон, если он есть, конечно
+	if(!DOT.daemon.mul) return DOT.error('Empty daemon.mul and tokenDecimals both!');
+        DOT.chain.mul = DOT.daemon.mul;
     }
 
-    // имя блокчейна "DOT"
-    if(cp.tokenSymbol) {
-	var x=cp.tokenSymbol.toHuman();
-	if(x && x[0]) DOT.chain.tokenSymbol = x[0];
-    }
+    // Проверочки на вшивость
+    if(!DOT.chain.mul) return DOT.error('Empty mul!');
+    if(!DOT.chain.tokenSymbol) return DOT.error("Empty tokenSymbol");
+    if(!DOT.chain.existentialDeposit) return DOT.error("Unknown existentialDeposit");
 
-    // величина депозита
-    const existentialDeposit = await DOT.api.consts.balances.existentialDeposit;
-    DOT.chain.existentialDeposit = parseInt(existentialDeposit);
-    if(!DOT.chain.existentialDeposit) DOT.chain.existentialDeposit=1*DOT.chain.mul;
+    DOT.total_planks = DOT.total() * DOT.chain.mul;
+    if(!DOT.total_planks) return DOT.error("Unknown total");
 
-    // цена транзакции
+    // выясним цену транзакции для НАШЕЙ КОНКРЕТНОЙ ЦЕНЫ
     const addr = "0x80723effd95bfea4c175a1ceed58e4b4b6bd2609a709e22d8d7a415ce263863f";
-    const { partialFee } = await DOT.api.tx.balances.transferKeepAlive(addr, 30*DOT.chain.mul).paymentInfo(addr);
+    const { partialFee } = await DOT.Transfer(addr, DOT.total_planks).paymentInfo(addr);
     DOT.chain.partialFee = parseInt(partialFee);
-    if(!DOT.chain.partialFee) DOT.chain.partialFee=0.02*DOT.chain.mul;
-
-    // на сколько должна превышать сумма
-    DOT.chain.amountAdd = DOT.chain.partialFee + DOT.chain.existentialDeposit;
-
-    DOT.amount=DOT.total() * DOT.chain.mul;
-    DOT.amount_human=Math.floor(DOT.amount/DOT.chain.mul*10000)/10000+' '+DOT.chain.tokenSymbol; // DOT.daemon.currency_name;
+    if(!DOT.chain.partialFee) return DOT.error("Unknown partialFee");
+    // Итак, на сколько должна превышать сумма?
+    DOT.chain.total_planksAdd = DOT.chain.partialFee + DOT.chain.existentialDeposit;
 
     DOT.dom('dotpay_info').innerHTML=
-        "Transferring "+DOT.indot( DOT.total()*DOT.chain.mul )
+        "Transferring "+DOT.indot( DOT.total_planks )
 	+" would require approximately "+DOT.indot( DOT.chain.partialFee )
 	+" on top of that to cover transaction fees."
-	//    "Amount: "+DOT.indot( DOT.total()*DOT.chain.mul + DOT.chain.partialFee)
+	//    "Amount: "+DOT.indot( DOT.total_planks + DOT.chain.partialFee)
 	//    +"<br>Covers price of kit(s), transaction fee and deposit in your Polkadot account"
 	+(DOT.is_test()?'':"<br>You can see sign 💰 in a test systems. Click 💰 for top up account from Alice.")
 	+"<br>&nbsp;";
 
-    DOT.Talert("You need to have at least "+DOT.indot( DOT.total()*DOT.chain.mul + DOT.chain.amountAdd,1) );
+    DOT.Talert("You need to have at least "+DOT.indot( DOT.total_planks + DOT.chain.total_planksAdd,1) );
+
+    // Кстати, а не оплачен ли уже оказался наш ордер?
+    if( ajax == 'payment' ) {
+	if( json.pay_account ) DOT.setPayAccount(json.pay_account); // так может и платежный аккаунт уже известен?
+	if( (''+json.result).toLowerCase() == 'paid' ) { DOT.onpaid(json); return false; }
+    }
+
     return true;
 },
 
@@ -523,49 +564,64 @@ progress: {
     },
 },
 
-AJAX: async function(url,data,headers) {
-    if(!headers) headers=[];
-    headers.push(["Content-Type", "application/json"]);
-    headers.push(["X-Requested-With", "XMLHttpRequest"]);
-    const r = await fetch(url,{ method:'POST',mode:'cors',credentials:'include',headers:headers,body: data});
-    const txt = await r.text();
-    if(r.ok) return txt;
-    return DOT.error("Error: " + r.status + " "+txt);
-},
+    AJAX: async function(url,data,headers) {
+	if(!headers) headers=[];
+        headers.push(["Content-Type", "application/json"]);
+        headers.push(["X-Requested-With", "XMLHttpRequest"]);
+        const r = await fetch(url,{ method:'POST',mode:'cors',credentials:'include',headers:headers,body: data});
+        const txt = await r.text();
+        if(r.ok) return txt;
+        return DOT.error("Error: " + r.status + " "+txt);
+    },
+
+    Transfer: function(destination, price) {
+	var ah=DOT.is_ah();
+	if(ah) { // AssetHub!!!
+	    if(!DOT.api.tx.assets.transferKeepAlive) return DOT.error("AssetHub Transfer not found: api.tx.assets.transferKeepAlive");
+	    return DOT.api.tx.assets.transferKeepAlive(ah, destination, price);
+	}
+	// transfer
+	if( !DOT.api.tx.balances.transferKeepAlive ) return DOT.error("Transfer not found: api.tx.balances.transferKeepAlive");
+	return DOT.api.tx.balances.transferKeepAlive(destination, price);
+    },
+
+
+    Balance: async function(destination) {
+	var ah=DOT.is_ah();
+	if(ah) { // AssetHub!!!
+	    var e = await DOT.api.query.assets.account( ah, destination );
+	    if(!e || !e.toHuman || !(e=e.toHuman())) return 0;
+	    e=(''+e.balance).replace(/,/g,''); // "995,000,000" СУКИ ЖЕ ВЫ НЕДОЁБАНЫЕ ПИДАРАСЫ ТРИЖДЫБЛЯДСКИЕ ПИЗДА У ВАС ВМЕСТО МОЗГА ВЫ О ЧЕМ ВООБЩЕ ДУМАЛИ, ОТДАВАЯ ВМЕСТО ЧИСЛА ЕБУЧУЮ СТРОКУ С ЗАПЯТЫМИ?!
+	    return parseInt(e);
+	}
+	// transfer
+	var e = await DOT.api.query.system.account( destination );
+	return e.data.free;
+    },
 
     payWithPolkadot: async function(json,SENDER, price, destination, wss) {
 	DOT.Talert('clear');
 	await DOT.connect();
 
-        var e = await DOT.api.query.system.account( destination );
-	DOT.Talert('Start balance = '+ e.data.free );
+	if(DOT.debug) DOT.Talert('Start balance: '+ await DOT.Balance(destination) );
 
 	const injector = await polkadotExtensionDapp.web3FromAddress(SENDER);
 
-	// var transfer = 'transfer';
-	var transfer = 'transferKeepAlive';
-	if(!DOT.api.tx.balances[transfer]) return DOT.error("Chain error: not found api.tx.balances."+transfer);
-
-	// if(!DOT.api.tx.balances[transfer]) transfer='transferKeepAlive';
-	// if(!DOT.api.tx.balances[transfer]) for(var l in DOT.api.tx.balances) { if(l.indexOf('transferAllo')==0) transfer=l; }
-
-	const transferExtrinsic = DOT.api.tx.balances[transfer](destination, price);
-	transferExtrinsic.signAndSend(SENDER, { signer: injector.signer }, ({ status }) => {
+	DOT.Transfer(destination, price).signAndSend(SENDER, { signer: injector.signer }, ({ status }) => {
             if(!DOT.progress.id) DOT.progress.run(0,
 		    function(){
 			DOT.error('Error: timeout');
 			setTimeout(DOT.progress.stop,800);
 		    }); // start progressbar
-	    DOT.Talert('status='+status.type);
-	    if (status.isInBlock || status.type == 'InBlock') {
-		DOT.Talert(`status:isInBlock Completed at block hash #${status.asInBlock.toString()}`);
-	        DOT.api.query.system.account( destination ).then((e) => { DOT.Talert('balance isInBlock = '+ e.data.free ); });
-	    } else if (status.isFinalized || status.type == 'Finalized') {
-		DOT.Talert('status:Finalized');
+	    if(status.isInBlock || status.type == 'InBlock') {
+		DOT.Talert("Status: isInBlock Completed #" + DOT.h( status.asInBlock.toString() ) );
+		// if(DOT.debug) DOT.Talert("Balance: " + (await DOT.Balance(destination)) );
+	    } else if(status.isFinalized || status.type == 'Finalized') {
+		DOT.Talert("Status: Finalized");
 		DOT.progress.stop();
 		return DOT.payment_done( destination );
 	    } else {
-		DOT.Talert(`status: ${status.type}`);
+		DOT.Talert("Status: "+DOT.h(status.type));
 	    }
 	}).catch((error) => {
             DOT.progress.stop(); // stop progressbar
@@ -574,20 +630,18 @@ AJAX: async function(url,data,headers) {
         });
     },
 
-
-
     payment_done: async function( destination ) {
 	DOT.Talert('payment_done');
 
 	if(!destination) destination = DOT.pay_account;
 	else {
-		var e = await DOT.api.query.system.account( destination );
-		DOT.Talert('Ending balance = '+ e.data.free );
+		var bal = await DOT.Balance(destination);
+		DOT.Talert('payment_done: Ending balance: '+bal );
 
-		if(parseInt(e.data.free) == 0) {
+		if(!bal) {
 		    DOT.progress.stop();
-		    DOT.Talert('Transfer error');
-		    return DOT.error('Transfer error');
+		    DOT.Talert('payment_done: Transfer error');
+		    return DOT.error('payment_done: Transfer error');
 		}
 	}
 
@@ -595,8 +649,8 @@ AJAX: async function(url,data,headers) {
 
 	var k=0;
 	var sin = setInterval(async function(){
-	    var e = await DOT.api.query.system.account( destination );
-	    DOT.Talert('balance now: '+ e.data.free );
+	    var bal = await DOT.Balance( destination );
+	    DOT.Talert('payment_done: Balance now: '+ bal );
 	    if(++k > 10) { clearInterval(sin); DOT.Talert('stop'); }
 	},2000);
 
@@ -632,7 +686,7 @@ AJAX: async function(url,data,headers) {
 
 	if(!DOT.pay_balance) DOT.pay_balance=0;
 	DOT.pay_balance+=parseInt(amount);
-	if( DOT.pay_balance >= DOT.total()*DOT.chain.mul ) return DOT.payment_done();
+	if( DOT.pay_balance >= DOT.total_planks ) return DOT.payment_done();
 	DOT.all_submit(1); // все-таки пойти порисовать
     },
 
@@ -654,14 +708,34 @@ AJAX: async function(url,data,headers) {
 	    console.debug('QR payment');
 
 	    DOT.dom('dotpay_info').innerHTML=
-	    "Transfer <b>"+DOT.indot( DOT.amount )+"</b> (will require approximately "+DOT.indot( DOT.chain.partialFee )+" on top of that to cover Polkadot transaction fees) to the following address:"
+	    "Transfer <b>"+DOT.indot( DOT.total_planks )+"</b> (will require approximately "+DOT.indot( DOT.chain.partialFee )+" on top of that to cover Polkadot transaction fees) to the following address:"
 		+"<div style='padding:10px 0 10px 0;font-weight:bold;font-size:1.1em'><a onclick='DOT.cpbuf(this.innerHTML); return false;'>"+DOT.pay_account+"</a></div>"
 		// +"<div style='font-size:8px;'>"+json.pay_account+"</div>"
-		+"<div style='padding-bottom: 10px;'>Currently received: <span onclick='DOT.getBalance(this.className)' class='DOT_"+DOT.pay_account+"'></span></div>"
+
+		+"<div style='padding-left:3em;'>"
+		    +"<div id='qrcode'></div>" // QR
+		    +"<div style='padding-bottom: 10px;'>Currently received: <span onclick='DOT.getBalance(this.className)' class='DOT_"+DOT.pay_account+"'></span></div>"
+		+"</div>"
+
 		// +"<br>Order id: "+json.order_id
 		+"When sent, please press the payment button once again to finalize your purchase."
 		+(DOT.is_test()?'':"<br>Test system: click <a href='javascript:DOT.topUpPay()'>here</a> to top up 1/3 summ from Alice.")
 		+"<br>&nbsp;";
+
+	    DOT.LOADS(
+		// "https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"
+		DOT.mainjs+"qrcode.min.js",
+		function(){ new QRCode(DOT.dom('qrcode'),{
+		    text: DOT.pay_account,
+		    width: 192,
+		    height: 192,
+		    // colorDark : '#5868bf',
+		    // colorLight : '#ffffff',
+		    // correctLevel : QRCode.CorrectLevel.H
+		    });
+		}
+	    );
+
 	    DOT.getBalance(DOT.pay_account);
 	    DOT.button_on();
 	    return;
@@ -669,20 +743,20 @@ AJAX: async function(url,data,headers) {
 	}
 
 	DOT.dom('dotpay_info').innerHTML=
-	    "This will send "+DOT.indot( DOT.amount )+" to the shop's address "
+	    "This will send "+DOT.indot( DOT.total_planks )+" to the shop's address "
 	    +DOT.pay_account
 	    +", and consume approximately "+DOT.indot( DOT.chain.partialFee )
 	    +" on top of that to cover Polkadot transaction fees"
 	    +"<br>&nbsp;";
 
-	DOT.Talert("Transfer <b>"+DOT.indot( 1*DOT.amount, 'planks' )+"</b>"
+	DOT.Talert("Transfer <b>"+DOT.indot( DOT.total_planks, 'planks' )+"</b>"
 		+"<div style='Efont-size:11px;'>From: <a onclick='DOT.cpbuf(this.innerHTML); return false;'>"+DOT.west(json.my_account)+"</a></div>"
 		// +"<div style='font-size:8px;'>"+json.my_account+"</div>"
 		+"<div style='Efont-size:11px;'>To: <a onclick='DOT.cpbuf(this.innerHTML); return false;'>"+DOT.pay_account+"</a></div>"
 		// +"<div style='font-size:8px;'>"+json.pay_account+"</div>"
 		+"<br>Order id: "+json.order_id);
 
-	DOT.payWithPolkadot(json, json.my_account, DOT.amount, DOT.pay_account);
+	DOT.payWithPolkadot(json, json.my_account, DOT.total_planks, DOT.pay_account);
     },
 
     et: 0,
@@ -791,7 +865,7 @@ AJAX: async function(url,data,headers) {
 	  DOT.dom('WalletID').innerHTML=op; // +(k!=1?'': "<div>Loading wallets "+DOT.ajaximg()+"</div>");
 	  // Onchang -: save to LocalStorage
 	  DOT.dom('WalletID').querySelectorAll("INPUT").forEach(function(ee){ ee.onchange=DOT.save_addr; });
-	  DOT.dom('dotpay_wallet_finded').innerHTML=// "<br>Amount: "+DOT.amount_human+
+	  DOT.dom('dotpay_wallet_finded').innerHTML=
 		(wallets.length
 		? "<br>found "+accounts.length+" accounts"+ (wallets.length > 1 ? " in "+wallets.length+" wallets":"")
 		:''
@@ -815,17 +889,21 @@ AJAX: async function(url,data,headers) {
 
     // Top up pay_account from Alice for 1/3 of summ (DOT.debug=1 or 'zymologia.fi' present in url)
     topUpPay: async function() {
-	var value = DOT.total()*DOT.chain.mul;
-	var addr = DOT.pay_account;
 	document.querySelectorAll('.DOT_'+addr).forEach((e)=>{ e.innerHTML=DOT.ajaximg(); });
-	DOT.topUpFromAlice( addr, value/3 );
+	DOT.topUpFromAlice( DOT.pay_account, DOT.total_planks / 3 );
     },
 
     // Top up Balance from Alice for test sites (DOT.debug=1 or 'zymologia.fi' present in url)
     topUpBalance: async function(e) {
-        var addr=e.closest('label').querySelector("input[type='radio']").value;
-	const value = DOT.total()*DOT.chain.mul + DOT.chain.amountAdd;
-	DOT.topUpFromAlice(addr,value);
+	if(e.getAttribute('oldvalue') && e.getAttribute('oldvalue').length) return; // дважды не кликать
+	e.setAttribute('oldvalue',e.innerHTML); // сохранить
+	e.innerHTML=DOT.ajaximg(); // поставить круктилку
+            const addr=e.closest('label').querySelector("input[type='radio']").value;
+	    const value = DOT.total_planks + DOT.chain.amountAdd;
+	    await DOT.topUpFromAlice(addr,value);
+	e.innerHTML=e.getAttribute('oldvalue'); // вернуть
+	e.setAttribute('oldvalue','');
+// eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
     },
 
     topUpFromAlice: async function(addr,value) {
@@ -834,14 +912,22 @@ AJAX: async function(url,data,headers) {
         DOT.Talert("Top up "+addr+" for "+DOT.indot(value,1));
 	await DOT.connect(); // connect if not
 	console.debug('DOT .connected, keyring:');
-	const keyring = new polkadotKeyring.Keyring({ type: 'sr25519' });
-	console.debug('DOT.alice:');
-	if(!DOT.alice) DOT.alice = keyring.addFromUri('//Alice'); // ЗАЕБАЛ ПОЛЬКАДОТ ВЕШАТЬ КОМП ЧЕРЕЗ РАЗ НА ТРЕТИЙ
-	console.debug('DOT.alice OK, transfer:');
-	const transfer = DOT.api.tx.balances.transferKeepAlive(addr, value);
-	console.debug('transfer OK, await hash:');
-	const hash = await transfer.signAndSend(DOT.alice);
-	console.debug('hash OK: '+hash);
+	var keyring = new polkadotKeyring.Keyring({ type: 'sr25519' });
+
+    if(!DOT.alice) {
+	console.debug("DOT.alice start generating pair for Alice");
+	var d=Date.now();
+
+	// DOT.alice = keyring.addFromUri('//Alice'); // КРИВОРУКИЕ БЛЯТЬ, 40 СЕКУНД!!! СОРОК СЕКУНД ГЕНЕРИТЬ КЛЮЧ АЛИСЫ В Firefox!!!
+	DOT.alice = keyring.addFromSeed(polkadotUtil.hexToU8a("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"));
+
+	d=Math.round((Date.now()-d)/1000);
+	console.debug('DOT.alice pair ready: '+d+' second: '+DOT.alice.address);
+	if(d>5) console.debug('БЛЯТЬ ЕБАНЫЕ ПИДАРАСЫ, КАК ЖЕ ОНО ТОРМОЗИТ!');
+    }
+
+	const hash = await DOT.Transfer(addr, value).signAndSend(DOT.alice);
+	console.debug('DOT.alice hash: '+hash);
 	DOT.Talert('Transaction sent with hash '+hash);
     },
 
@@ -869,11 +955,14 @@ AJAX: async function(url,data,headers) {
 	// раставили картинки-заглушки
 	document.querySelectorAll('.DOT_'+west).forEach((e)=>{ e.innerHTML=DOT.ajaximg(); });
 	// пошли качать баланс
-	if(DOT.api) DOT.api.query.system.account(west).then((l) => { DOT.setBalance(west,parseInt(l.data.free)) });
+	if(DOT.api) {
+	    DOT.Balance(west).then((l) => { DOT.setBalance(west,l) });
+	}
     },
 
     // баланс известен, обновить его на странице всюду
     setBalance: function(west,bal) {
+
 	if(west==DOT.pay_account) DOT.pay_balance=bal; // Если это наш баланс, то сохранить
 	document.querySelectorAll('.DOT_'+west).forEach((e)=>{
 	    e.innerHTML=DOT.ajaximg();
@@ -890,7 +979,7 @@ AJAX: async function(url,data,headers) {
 	w.setAttribute('nobalance',0); // этот баланс уже проверен
 
 	// какой нынче минимум баланса?
-	var minimum = DOT.total()*DOT.chain.mul + DOT.chain.amountAdd;
+	var minimum = DOT.total_planks + DOT.chain.amountAdd;
 	// set Opacity
 	if( bal < minimum ) {
 	    w.style.opacity='0.5';
@@ -906,7 +995,12 @@ AJAX: async function(url,data,headers) {
 	// Сколько доступных кошельков?
 	var pp=DOT.dom('WalletID').querySelectorAll("LABEL.DOT_ADDR INPUT:not([disabled])");
 	// Если 1 - мануал, выделить; если 2 - что-то кроме мануала, выделить его
-	if(pp.length==1 || pp.length==2) pp[pp.length-1].querySelector('INPUT').click();
+
+	if(pp.length===1 || pp.length===2) {
+	    pp=pp[pp.length-1];
+	    if(pp.tagName!='INPUT') pp=pp.querySelector('INPUT');
+	    pp.click();
+	}
     },
 
     west: function(x) {
@@ -942,7 +1036,44 @@ AJAX: async function(url,data,headers) {
 
 	// и подписались на события изменения баланса
 	DOT.api.query.system.events((events) => {
+
+
+    events.forEach(({ event, phase }) => {
+      console.log(`\tEEEEEEEEEEEEEE: ${event.section}:${event.method}:: (phase=${phase.toString()})`);
+
+        var [from, to, amount] = event.data;
+    from = (from && from.toString ? DOT.west(from.toString()):false);
+    to = (to && to.toString ? DOT.west(to.toString()):false);
+    amount = (amount && amount.toString ? parseInt(amount.toString()):false);
+
+    console.log(
+"\nfrom("+typeof(from)+") = "+from
++"\nto("+typeof(to)+") = "+to
++"\namount("+typeof(amount)+") = "+amount
+);
+
+	    if(from) DOT.getBalance(from);
+	    if(to) DOT.getBalance(to);
+	    if(DOT.onBalance && to) DOT.onBalance(from,to,amount); // to === YOUR_TARGET_ACCOUNT_ADDRESS
+
+
+    //  console.log(`\t\t${event.meta.documentation.toString()}`);
+//      event.data.forEach((data, index) => {
+//        console.log(`\t\t\t${event.typeDef[index].type}: ${data.toString()}`);
+//      });
+    });
+
+//    system:ExtrinsicSuccess:: (phase={"applyExtrinsic":2}) DOT.js:1022:15
+//    {"weight":"SpWeightsWeightV2Weight",
+// "class":"FrameSupportDispatchDispatchClass",
+// "paysFee":"FrameSupportDispatchPays"}: {"weight":{"refTime":658678000,"proofSize":6208},"class":"Normal","paysFee":"Yes"}
+
+
+/*
+
          events.forEach(({ event }) => {
+
+
           if(DOT.api.events.balances.Transfer.is(event) || DOT.api.events.balances.Deposit.is(event)) {
             var [from, to, amount] = event.data;
 	    from = (from && from.toString ? DOT.west(from.toString()):false);
@@ -952,8 +1083,28 @@ AJAX: async function(url,data,headers) {
 	    if(to) DOT.getBalance(to);
 	    if(DOT.onBalance && to) DOT.onBalance(from,to,amount); // to === YOUR_TARGET_ACCOUNT_ADDRESS
           }
+
          });
+*/
+
 	});
+
+/*
+if(!DOT.api.query.assets.Issued) alert('NO;');
+DOT.api.query.assets.Issued((events) => {
+    console.log(`Received ${events.length} asset issuance events:`);
+
+    events.forEach(({ event, phase }) => {
+      console.log(`\t${event.section}:${event.method}:: (phase=${phase.toString()})`);
+      console.log(`\t\t${event.meta.documentation.toString()}`);
+
+      event.data.forEach((data, index) => {
+        console.log(`\t\t\t${event.typeDef[index].type}: ${data.toString()}`);
+      });
+    });
+ });
+*/
+
     },
 
     identicon_init: async function() {
@@ -1030,5 +1181,5 @@ AJAX: async function(url,data,headers) {
 ajaxm: "data:image/gif;base64,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",
 ajaximg: function(){ return "<img src='"+DOT.ajaxm+"'>"; },
 is_test: function() { return ( document.location.href.indexOf('zymologia.fi')<0 && !DOT.dubug ? true : false ); },
-
+alice_keys: function() { return JSON.parse('{"address":"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY","addressRaw":{"0":212,"1":53,"2":147,"3":199,"4":21,"5":253,"6":211,"7":28,"8":97,"9":20,"10":26,"11":189,"12":4,"13":169,"14":159,"15":214,"16":130,"17":44,"18":133,"19":88,"20":133,"21":76,"22":205,"23":227,"24":154,"25":86,"26":132,"27":231,"28":165,"29":109,"30":162,"31":125},"isLocked":false,"meta":{},"publicKey":{"0":212,"1":53,"2":147,"3":199,"4":21,"5":253,"6":211,"7":28,"8":97,"9":20,"10":26,"11":189,"12":4,"13":169,"14":159,"15":214,"16":130,"17":44,"18":133,"19":88,"20":133,"21":76,"22":205,"23":227,"24":154,"25":86,"26":132,"27":231,"28":165,"29":109,"30":162,"31":125},"type":"sr25519"}'); },
 };
