@@ -217,7 +217,7 @@ presta_init: function(cx) {
 	return false;
     },
 
-    // Выдать окно с алертом ( пока alert() ) и запретить на это время уходы со страницы
+    // Выдать маленькое окно с алертом ( пока alert() ) и запретить на это время уходы со страницы
     win_alert: function(s) {
 	DOT.erralert=true;
 	alert(s);
