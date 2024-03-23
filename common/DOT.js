@@ -1,3 +1,10 @@
+//                       _  __     _       _             _
+//                      | |/ /__ _| | __ _| |_ ___  _ __(_)
+//                      | ' // _` | |/ _` | __/ _ \| '__| |
+//                      | . \ (_| | | (_| | || (_) | |  | |
+//                      |_|\_\__,_|_|\__,_|\__\___/|_|  |_|
+//
+
 DOT={
 
 debug: 0, // ТОЛЬКО ДЛЯ ОТЛАДКИ! ПОТОМ УБРАТЬ!
@@ -216,7 +223,7 @@ presta_init: function(cx) {
     button_off: function(){},
 
 //    ajax_headers: false, // хедеры, подставляемые в платежный запрос аякса
-//    ajax_headers_info: false, // хедеры, подставляемые в информационный запрос аякса
+//    ajax_headers_info false, // хедеры, подставляемые в информационный запрос аякса
 
     class_warning: 'alert alert-danger',
 
@@ -293,11 +300,20 @@ selected_acc: function() {
 },
 
 
-is_ah: function() { // это AccetHub ?
+is_ah: function() { // это AssetHub ?
     if( DOT.daemon.wss.indexOf('-ah') < 0 ) return false;
-    DOT.daemon.accethub_id = 1337; // USDC — 1337 USDT — 1984
-    DOT.daemon.accethub_name = "USDC";
-    return DOT.daemon.accethub_id;
+    DOT.daemon.assethub_id = 1337; // USDC — 1337 USDT — 1984
+    DOT.daemon.assethub_tip = 0; // хуй знает чего, но 0
+    DOT.daemon.assethub_name = "USDC";
+    return DOT.daemon.assethub_id;
+},
+
+add_ah: function(a) { // добавляем в запрос ещё кое-какие нужные параметры, если assethub
+    if(DOT.is_ah()) {
+	a.tip=DOT.daemon.assethub_tip;
+	a.assetId=DOT.daemon.assethub_id;
+    }
+    return a;
 },
 
 daemon_get_info: async function() {
@@ -349,7 +365,7 @@ daemon_get_info: async function() {
 	DOT.chain.name = cp.name; // "USD Coin"
 	DOT.chain.tokenSymbol = cp.symbol; // "USDC"
 	// величина депозита
-	cp = await DOT.api.query.assets.asset(parseInt(DOT.daemon.accethub_id));
+	cp = await DOT.api.query.assets.asset(parseInt(DOT.daemon.assethub_id));
 	if(cp && (cp=cp.toHuman()) ) DOT.chain.existentialDeposit = parseInt(cp.minBalance); // minBalance 70,000
     } else {
 	cp = await DOT.api.rpc.system.properties();
@@ -382,8 +398,12 @@ daemon_get_info: async function() {
 
     // выясним цену транзакции для НАШЕЙ КОНКРЕТНОЙ ЦЕНЫ
     const addr = "0x80723effd95bfea4c175a1ceed58e4b4b6bd2609a709e22d8d7a415ce263863f";
-    const { partialFee } = await DOT.Transfer(addr, DOT.total_planks).paymentInfo(addr);
+
+    const { partialFee } = await DOT.Transfer(addr, DOT.total_planks)
+	.paymentInfo(addr,DOT.add_ah({}));
     DOT.chain.partialFee = parseInt(partialFee);
+
+
     if(!DOT.chain.partialFee) return DOT.error("Unknown partialFee");
     // Итак, на сколько должна превышать сумма?
     DOT.chain.total_planksAdd = DOT.chain.partialFee + DOT.chain.existentialDeposit;
@@ -607,7 +627,9 @@ progress: {
 
 	const injector = await polkadotExtensionDapp.web3FromAddress(SENDER);
 
-	DOT.Transfer(destination, price).signAndSend(SENDER, { signer: injector.signer }, ({ status }) => {
+	DOT.Transfer(destination, price).signAndSend(SENDER,
+	    DOT.add_ah({signer: injector.signer})
+	, ({ status }) => {
             if(!DOT.progress.id) DOT.progress.run(0,
 		    function(){
 			DOT.error('Error: timeout');
@@ -903,7 +925,6 @@ progress: {
 	    await DOT.topUpFromAlice(addr,value);
 	e.innerHTML=e.getAttribute('oldvalue'); // вернуть
 	e.setAttribute('oldvalue','');
-// eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
     },
 
     topUpFromAlice: async function(addr,value) {
@@ -1032,14 +1053,21 @@ progress: {
 	// соединяемся с блокчейном
 	var wss = (''+DOT.daemon.wss).replace(/\:\d+$/g,'');
 	var Prov = new polkadotApi.WsProvider(wss);
-	DOT.api = await polkadotApi.ApiPromise.create({ provider: Prov });
+
+	var a = { provider: Prov }; // для общего случая коннекта
+	if(DOT.is_ah()) { // в случае assetHub добавляем невыразимой мистической хуйни от шамана Габышева и Сёко Асахара
+	    a.signedExtensions = {
+	          ChargeAssetTxPayment: { extrinsic: {tip: "Compact<Balance>", assetId: "Option<AssetId>" } }
+	    };
+	}
+
+	DOT.api = await polkadotApi.ApiPromise.create(a);
 
 	// и подписались на события изменения баланса
 	DOT.api.query.system.events((events) => {
 
-
     events.forEach(({ event, phase }) => {
-      console.log(`\tEEEEEEEEEEEEEE: ${event.section}:${event.method}:: (phase=${phase.toString()})`);
+     // console.log(`\tEEEEEEEEEEEEEE: ${event.section}:${event.method}:: (phase=${phase.toString()})`);
 
         var [from, to, amount] = event.data;
     from = (from && from.toString ? DOT.west(from.toString()):false);
