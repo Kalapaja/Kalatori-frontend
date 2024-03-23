@@ -23,14 +23,14 @@ ajax.php          | ps_dotpayment/controllers/front/*
 payment.php       | ps_dotpayment/controllers/front/*
 validation.php    | ps_dotpayment/controllers/front/*
 
-../../common/temp-upload/bundle-polkadot-api.js             | ps_dotpayment/views/js/*
-../../common/temp-upload/bundle-polkadot-extension-dapp.js  | ps_dotpayment/views/js/*
-../../common/temp-upload/bundle-polkadot-keyring.js         | ps_dotpayment/views/js/*
-../../common/temp-upload/bundle-polkadot-types.js           | ps_dotpayment/views/js/*
-../../common/temp-upload/bundle-polkadot-util-crypto.js     | ps_dotpayment/views/js/*
-../../common/temp-upload/bundle-polkadot-util.js            | ps_dotpayment/views/js/*
+../../common/vendor/bundle-polkadot-api.js             | ps_dotpayment/views/js/*
+../../common/vendor/bundle-polkadot-extension-dapp.js  | ps_dotpayment/views/js/*
+../../common/vendor/bundle-polkadot-keyring.js         | ps_dotpayment/views/js/*
+../../common/vendor/bundle-polkadot-types.js           | ps_dotpayment/views/js/*
+../../common/vendor/bundle-polkadot-util-crypto.js     | ps_dotpayment/views/js/*
+../../common/vendor/bundle-polkadot-util.js            | ps_dotpayment/views/js/*
 
-../../common/temp-upload/qrcode.min.js | ps_dotpayment/views/js/*
+../../common/vendor/qrcode.min.js | ps_dotpayment/views/js/*
 
 #https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | ps_dotpayment/views/js/*
 #https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | ps_dotpayment/views/js/*

@@ -6,12 +6,12 @@
 ### Download new polkadot.js first
 ###
 
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | common/temp-upload/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | common/temp-upload/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | common/temp-upload/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | common/temp-upload/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | common/temp-upload/*
-https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | common/temp-upload/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-api.js             | common/vendor/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-extension-dapp.js  | common/vendor/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-keyring.js         | common/vendor/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-types.js           | common/vendor/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util-crypto.js     | common/vendor/*
+https://raw.githubusercontent.com/polkadot-js/build-bundle/master/bundle-polkadot-util.js            | common/vendor/*
 
 # QR-code
-https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js | common/temp-upload/*
+https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js | common/vendor/*
