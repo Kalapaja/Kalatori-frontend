@@ -1,3 +1,28 @@
-# This file stores configurations for your Shopify app.
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
+client_id = "97d660c60fc76bd125667d8f3368b03d"
+name = "kalatori"
+handle = "kalatori-1"
+application_url = "https://latin-tp-designed-heights.trycloudflare.com"
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "alzymolgist.myshopify.com"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://latin-tp-designed-heights.trycloudflare.com/auth/callback",
+  "https://latin-tp-designed-heights.trycloudflare.com/auth/shopify/callback",
+  "https://latin-tp-designed-heights.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-04"
+
+[pos]
+embedded = false

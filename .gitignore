@@ -17,3 +17,7 @@ gogit.sh
 
 
 node_modules
+
+woocommerce_release/secret.txt
+prestashop_release/secret.txt
+off/
