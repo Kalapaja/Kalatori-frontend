@@ -11,7 +11,7 @@ The **Kalatori Frontend SDK** provides a modular way to integrate blockchain pay
 1. **Set up project structure** (Monorepo with Turborepo or Nx).
 2. **Set up and configure Turborepo** for monorepo management.
 3. **Implement core API wrapper** for Kalatori backend.
-3. **Create order management methods:** `createOrder`, `getOrderStatus`, `trackOrder`, `cancelOrder`.
+3. **Create order management methods:** `createOrder`, `getOrderStatus`, `trackOrder`.
 4. **Integrate CoinGecko API** for exchange rate conversions.
 5. **Implement event-based API** (`onOrderUpdate`) for real-time tracking.
 6. **Develop error handling & retry logic**.

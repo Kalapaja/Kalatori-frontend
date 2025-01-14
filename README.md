@@ -1,9 +1,25 @@
 # Kalatori Frontend SDK Documentation
 
 ## Overview
+
+### How It Works with the Kalatori Daemon
+
+The **Kalatori Frontend SDK** interfaces with the **Kalatori Daemon**, which generates unique addresses per order and tracks payments. The SDK itself **does not process transactions** but interacts with the daemon's API to facilitate payment workflows.
+
+### Payment Flow
+
+1. The merchant's frontend **creates an order** using the SDK.
+2. The SDK **retrieves a unique payment address** from the daemon.
+3. The user pays using either:
+    - **Browser Wallet (Polkadot.js, Talisman, SubWallet, etc.)**
+    - **QR Code for external wallet payments**
+4. The daemon monitors the blockchain for the payment confirmation.
+5. The frontend SDK **tracks the order status** and updates the UI accordingly.
+
 The **Kalatori Frontend SDK** provides a modular way to integrate blockchain payments into e-commerce platforms. It allows developers to create orders, track payment status, listen for updates, and handle currency conversions.
 
 ## Installation
+
 You can install the SDK via npm or yarn:
 
 ```sh
@@ -17,32 +33,75 @@ yarn add @kalatori/core-sdk
 ```
 
 ## Initialization
-To use the SDK, you need to initialize it with your Kalatori API key and daemon URL:
+
+To use the SDK, you need to initialize it with your Kalatori daemon URL:
 
 ```ts
 import { KalatoriSDK } from "@kalatori/core-sdk";
 
 const kalatori = new KalatoriSDK({
-  apiKey: "YOUR_API_KEY",
   daemonUrl: "https://kalatori-daemon.example.com",
 });
 ```
 
 ## Interface
+
+### 5. **CLI Tool for Kalatori Daemon**
+
+The Kalatori CLI tool allows direct interaction with the Kalatori Daemon from the command line, making it easier to manage payments, check statuses, and retrieve available currencies.
+
+#### Installation
+To install the CLI tool, run:
+```sh
+npm install -g @kalatori/cli
+```
+
+#### Available Commands
+- `kalatori status` → Checks the daemon's health and supported currencies.
+- `kalatori order create --orderId 123456 --amount 50 --currency USDC` → Creates a new payment order.
+- `kalatori order status --orderId 123456` → Retrieves the status of an existing order.
+- `kalatori wallet accounts` → Lists available wallet accounts with balances.
+- `kalatori wallet pay --orderId 123456 --account 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY` → Sends payment from the specified account.
+
+#### Example Usage
+```sh
+kalatori order create --orderId 123456 --amount 100 --currency DOT
+kalatori order status --orderId 123456
+kalatori wallet accounts
+kalatori wallet pay --orderId 123456 --account 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+```
+
 The Kalatori Frontend SDK exposes a flexible and modular interface for developers. It provides both **headless API interactions** and **UI components** for seamless integration. The interface consists of:
 
 ### 1. **Core SDK Methods** (For direct API interactions)
+
 - `createOrder(orderId, amount, currency, callbackUrl)`: Creates a new payment order.
 - `getOrderStatus(orderId)`: Retrieves the latest status of an order.
 - `trackOrder(orderId, callback)`: Polls the order status and triggers the callback when updated.
-- `cancelOrder(orderId)`: Cancels an active order.
 - `getSupportedCurrencies()`: Returns available currencies.
 - `convertPrice(baseCurrency, amount, targetCurrency)`: Converts amounts using exchange rates.
 
 ### 2. **Event-Based API** (For real-time order tracking)
+
 - `onOrderUpdate(callback)`: Listens for order status updates.
 
-### 3. **UI Components** (For quick integration into React/Vue projects)
+### 3. **UI Components** (For quick integration into React, Vue, and Svelte projects)
+
+#### Payment Modes
+
+- **Embedded Mode** → The merchant's frontend handles the entire process.
+- **Offsite Mode** → Users are redirected to an external Kalatori-hosted payment page.
+
+#### Example: Redirecting to an Offsite Payment Page
+
+```ts
+const order = await kalatori.createOrder({ orderId: "123456", amount: 100, currency: "DOT" });
+
+if (order.payment_page) {
+  window.location.href = order.payment_page; // Redirect to offsite payment page
+}
+```
+
 - `<KalatoriCheckout />`: A checkout UI component handling payments.
 - `<CurrencyPicker />`: A currency selection dropdown.
 - `<PaymentQR />`: Displays a scannable QR code for payments.
@@ -51,141 +110,72 @@ The Kalatori Frontend SDK exposes a flexible and modular interface for developer
 - `<TermsAndConditions />`: Displays terms and conditions with a required checkbox for payments.
 
 ### 4. **Browser Wallet Integration**
+
 The SDK supports **browser wallets** for seamless transaction signing. This allows users to pay directly from their wallets such as **Polkadot.js, Talisman, and SubWallet**.
 
 - `connectWallet(provider)`: Connects to a specified wallet provider.
 - `getWalletAccounts()`: Retrieves the list of accounts from the connected wallet.
 - `getAccountBalances()`: Checks balances of retrieved accounts.
 - `filterSufficientBalanceAccounts(amount)`: Returns accounts with sufficient balance for the transaction.
+- `getAccountBalancesInCurrency(currency)`: Returns balances for all accounts in the selected currency.
+- `getAvailableAccountsForPayment(amount, currency)`: Filters and returns only accounts that can cover the payment amount.
 - `signAndSendTransaction(orderId, selectedAccount)`: Signs and submits a transaction using the connected wallet.
 
 #### Terms and Conditions Enforcement
+
 Before making a payment, the user must agree to the **Terms and Conditions** by checking a required checkbox in the UI. Only after confirming agreement will the payment options (wallet integration or QR code) become available.
 
-#### Example Usage:
-```ts
-import { KalatoriSDK } from "@kalatori/core-sdk";
-
-const kalatori = new KalatoriSDK({ apiKey: "YOUR_API_KEY" });
-
-// Connect wallet
-await kalatori.connectWallet("polkadot-js");
-
-// Fetch accounts and check balances
-const accounts = await kalatori.getWalletAccounts();
-const balances = await kalatori.getAccountBalances();
-const eligibleAccounts = await kalatori.filterSufficientBalanceAccounts(100);
-
-console.log("Eligible accounts:", eligibleAccounts);
-
-// Sign and send payment transaction from a selected eligible account
-await kalatori.signAndSendTransaction("123456", eligibleAccounts[0]);
-```
-
-### 5. **CLI Installer**
-A command-line installer for setting up the SDK and dependencies:
-```sh
-npx kalatori-installer
-```
-
 ## API Reference
+
 ### `createOrder({ orderId, amount, currency, callbackUrl })`
+
 Creates a new order in Kalatori.
+
+#### Callback URL Support
+
+- If no `callbackUrl` is provided, the order will **not trigger automatic updates**.
+- Use a webhook to listen for payment updates.
 
 ```ts
 const order = await kalatori.createOrder({
   orderId: "123456",
-  amount: 100,
-  currency: "DOT",
-  callbackUrl: "https://your-shop.com/webhooks/kalatori?order=123456",
-});
-console.log("Payment address:", order.paymentAccount);
-```
-
-### `getOrderStatus(orderId)`
-Fetches the current status of an order.
-
-```ts
-const status = await kalatori.getOrderStatus("123456");
-console.log("Order Status:", status.payment_status);
-```
-
-### `trackOrder(orderId, callback)`
-Continuously polls the order status and triggers the callback on updates.
-
-```ts
-kalatori.trackOrder("123456", (order) => {
-  console.log(`Order ${order.orderId} is now ${order.payment_status}`);
+  amount: 50,
+  currency: "USDC",
+  callbackUrl: "https://yourshop.com/webhook/kalatori",
 });
 ```
 
-### `cancelOrder(orderId)`
-Cancels an order.
+### Webshop Integrations
 
-```ts
-await kalatori.cancelOrder("123456");
-console.log("Order cancelled.");
-```
+Want to accept Polkadot payments on your webshop? Check out our plugins:
 
-### `getSupportedCurrencies()`
-Retrieves a list of supported currencies.
+- [WooCommerce](/docs/woocommerce_install.md)
+- [Magento](/docs/magento_install.md)
+- [OpenCart](/docs/opencart3_install.md)
 
-```ts
-const currencies = await kalatori.getSupportedCurrencies();
-console.log("Supported Currencies:", currencies);
-```
+## Testing & Debugging
 
-### `convertPrice(baseCurrency, amount, targetCurrency)`
-Converts an amount from one currency to another using exchange rates.
-
-```ts
-const converted = await kalatori.convertPrice("USD", 50, "DOT");
-console.log("Converted Price:", converted);
-```
-
-## UI Components (React)
-
-### `<KalatoriCheckout />`
-A ready-to-use checkout component.
-
-```tsx
-import { KalatoriCheckout } from "@kalatori/ui-widgets";
-
-<KalatoriCheckout
-  orderId="123456"
-  amount={50}
-  baseCurrency="USD"
-  onSuccess={() => alert("Payment received!")}
-  onError={(err) => console.error("Payment failed:", err)}
-/>
-```
-
-### `<CurrencyPicker />`
-A dropdown for selecting the payment currency.
-
-```tsx
-import { CurrencyPicker } from "@kalatori/ui-widgets";
-
-<CurrencyPicker selected="DOT" onChange={(currency) => console.log(currency)} />
-```
-
-## CLI Installer
-To simplify setup, use the Kalatori CLI installer:
+To test API interactions, use Postman or cURL:
 
 ```sh
-npx kalatori-installer
+curl -X POST https://kalatori-daemon.example.com/v2/order/123456 \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 50, "currency": "USDC"}'
 ```
 
-This will guide you through selecting a platform and installing the necessary dependencies.
-
 ## License
+
 Kalatori is open-source software licensed under GPLv3.
 
 ## Contributing
+
 We welcome contributions! Please submit issues and pull requests to the [GitHub repository](https://github.com/kalatori/frontend-sdk).
 
 ## Support
+
 For support and discussions, join our community on [Matrix](https://matrix.to/#/#Kalatori-support) or visit our [GitHub Discussions](https://github.com/kalatori/frontend-sdk/discussions).
+
+
 
 
 
