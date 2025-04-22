@@ -21,3 +21,9 @@ node_modules
 woocommerce_release/secret.txt
 prestashop_release/secret.txt
 off/
+
+.DS_Store
+.idea/
+opencart3_extension/upload/print_structure.sh
+opencart3_release/output_buffer.txt
+opencart3_extension/upload/output_buffer.txt

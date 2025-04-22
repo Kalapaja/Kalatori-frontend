@@ -103,7 +103,7 @@ class ControllerExtensionPaymentPolkadot extends Controller {
 
 	    $data = array(
     		'currency' => $currency,
-    		'amount' => $amount
+    		'amount' => (float)$amount
 	    );
 
 	    $r = $this->ajax($url,$data); // A J A X

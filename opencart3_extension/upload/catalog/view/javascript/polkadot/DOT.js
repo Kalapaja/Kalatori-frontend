@@ -4,6 +4,9 @@
 //                      | . \ (_| | | (_| | || (_) | |  | |
 //                      |_|\_\__,_|_|\__,_|\__\___/|_|  |_|
 //
+// https://alzymologist.github.io/kalatori-api/
+
+// никакого ajax_host! эндпоинт называется ajax_url
 
 DOT={
 
@@ -21,24 +24,34 @@ test_acc: "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5",
 
 nodes: {},
 
-chain: { // тут будет инфо, запрошенное от блокчейна
-//    ss58: 0,
-//    decimals: false,
-//    mul: false,
-//    symbol: '',
-//    deposit: false, // 1*defaultMul,
-//    fee: false, // 0.02*defaultMul,
-//    wss: "https://node-polkadot.zymologia.fi:444",
+cx: { // тут будет инфо
+// СЛУЖЕБНОЕ:
+    topupButton: '', // (DOT.is_test() ? '' : "💰"),
+
+// ИЗНАЧАЛЬНОЕ:
     pay_acc: 'wait', //  целевой аккаунт, который пришлет магазин
     pay_bal: 0, // баланс на нём
     my_acc: "", // выбранный аккаунт
-//    order: false,
-//    total: false, // 30.1
-//    total_planks: false, // 301000000000
-//    total_add_planks: false,
-//    total_min_planks: false,
-    // hashTemplate: "https://polkadot.subscan.io/extrinsic/", // https://assethub-polkadot.subscan.io/extrinsic/
-    topupButton: '', // (DOT.is_test() ? '' : "💰"),
+
+// ПОЯВЯЩЕЕСЯ:
+//	total: 30.1 - цена
+//	order: "X1123_M",
+//	my_hash: будущий хэш
+//	ajax_url: адрес эндпоинта
+
+// ОБЯЗАТЕЛЬНОЕ:
+//	currency: "USD",
+//	currences: "USDT-L DOT-L"
+
+// ОПЦИОНАЛЬНОЕ:
+//	daemon_direct: 0 - флаг обозначающий, напрямую ли должен DOT.js обращаться к демону,
+//		если нет, то status_url=ajax_url+'?endpoint=status'; order_url=ajax_url+'?endpoint=order';
+//      	если да, что status_url=ajax_url+'/v2/status'; order_url=ajax_url+'/v2/order/*';
+//	status_url: можно задать отдельно
+//	order_url: можно задать отдельно
+//	mainjs: "https://store/plugin/view/js/" Папка, где JS-скрипты, если не установлена, считается, что они уже
+//	name - store name
+//	shop_id - shop id (add to order_id if exist)
 },
 
 flag: {/*
@@ -72,15 +85,17 @@ reboot: function(newcur) {
 
 accs: [], // тут будет инфо аккаунтов
 
-cx: {}, // а тут инфо от магазина
-
 //////////////////////////////////////////////////////////
 
 // Фишки для дизайна Света
 SV: {
 
     // Select an Acount
-    select: async function() { var e = window.event.target;
+    select: async function(event) {
+	event.preventDefault();
+	if(event.stopPropagation) event.stopPropagation();
+	if(event.stopImmediatePropagation) event.stopImmediatePropagation();
+	var e = window.event.target;
 
 	console.log("=========== select account");
 
@@ -109,11 +124,12 @@ SV: {
 
         if(!a.active) return; // там недостаточно средств
 
-	DOT.chain.my_acc = a.acc;
-	DOT.chain.my_wallet = a.wallet;
+	DOT.cx.my_acc = a.acc;
+	DOT.cx.my_wallet = a.wallet;
 	DOT.SV.page_Select();
 
 	DOT.all_submit();
+
     },
 
 
@@ -122,7 +138,7 @@ SV: {
 	console.log("=========== SCREEN: select");
 
 	var a = false; for(var x of DOT.accs) {
-	    if(x.acc == DOT.chain.my_acc && x.wallet == DOT.chain.my_wallet) { a = x; break; }
+	    if(x.acc == DOT.cx.my_acc && x.wallet == DOT.cx.my_wallet) { a = x; break; }
 	}
 
 	// other: pay with this value
@@ -134,11 +150,11 @@ SV: {
 </button>
 <div id='sv-one-account'></div>
 <div class="flex-row flex-start gap-small">
-    <div class="kco-tac-toggler" val="0">
+    <div class="sv-terms kco-tac-toggler" val="0">
         <span class="material-symbols-outlined">check_box_outline_blank</span>
         <span class="material-symbols-outlined">check_box</span>
     </div>
-    <span>Agree with <u>terms and conditions</u> to continue with payment</span>
+    <span>Agree to <u>terms and conditions</u> to continue with payment</span>
 </div>
 <button class="kco-button kco-tac-disabled disabled" onclick="DOT.SV.page_Signature()">
     Sign transaction in your PolkadotJS browser extension
@@ -172,11 +188,11 @@ SV: {
 	    <div id='sv-one-account'></div>
 
             <div class="flex-row flex-start gap-small">
-                <div id="sv-terms-val" class="kco-tac-toggler disabled" val="1">
+                <div id="sv-terms-val" class="sv-terms kco-tac-toggler disabled" val="1">
                     <span class="material-symbols-outlined">check_box_outline_blank</span>
                     <span class="material-symbols-outlined">check_box</span>
                 </div>
-                <span onclick="DOT.dom('sv-terms-val').setAttribute('val','0')">Agree with <u>terms and conditions</u> to continue with payment</span>
+                <span onclick="DOT.SV.terms(0)">Agree to <u>terms and conditions</u> to continue with payment</span>
             </div>
             <div id='sv-notification' class="kco-notification" onclick="DOT.SV.page_Process()">
         	<!-- message -->
@@ -188,9 +204,7 @@ SV: {
 
 	DOT.SV.init();
 	DOT.html_wallets();
-	var a = false; for(var x of DOT.accs) {
-console.log('--> '+x.acc);
- if(x.acc == DOT.chain.my_acc) { a = x; break; } }
+	var a = false; for(var x of DOT.accs) { if(x.acc == DOT.cx.my_acc) { a = x; break; } }
 	if(a) {
 	    console.log('a: '+a.wallet+'/'+a.acc+'/'+a.name);
 
@@ -199,14 +213,14 @@ console.log('--> '+x.acc);
 	    a.elem.classList.remove('inactive');
 	    a.elem.classList.add('selected');
 	    DOT.dom('sv-one-account').appendChild(a.elem);
-	} else console.log('notf: '+DOT.chain.my_acc);
+	} else console.log('notf: '+DOT.cx.my_acc);
     },
 
 
     page_Signature: function() {
 	console.log("=========== SCREEN: Signature");
 	DOT.SV.page_draw_oneacc();
-	DOT.dom('sv-notification').innerHTML = `<span>Waiting for your Signature from <span class='chain-my_wallet'></span> browser extension</span><span class="material-symbols-outlined ani-spin">autorenew</span>`;
+	DOT.dom('sv-notification').innerHTML = `<span>Waiting for your Signature from <span class='cx-my_wallet'></span> browser extension</span><span class="material-symbols-outlined ani-spin">autorenew</span>`;
 	DOT.all_submit();
     },
 
@@ -239,7 +253,7 @@ console.log('--> '+x.acc);
 	DOT.SV.page_draw_oneacc();
 	DOT.dom('sv-notification').innerHTML = `<span><u>Payment</u> successful</span><span class="material-symbols-outlined">task_alt</span>`;
 
-	var sec = 10;
+	var sec = 5;
 	var e = DOT.dom('sv-second-counter');
 	e.innerHTML = sec;
 	DOT.dom('sv-redirect-button').style.display='block';
@@ -249,7 +263,7 @@ console.log('--> '+x.acc);
 	    else {
 		clearInterval(DOT.intervalSec); DOT.intervalSec = false;
 		DOT.dom('sv-redirect-button').style.display='none';
-		// if(url) window.location = url;
+		if(url) window.location = url;
 	    }
 	},1000);
     },
@@ -262,12 +276,12 @@ console.log('--> '+x.acc);
 <div id='sv-info' class="t-small t-secondary">
 </div>
 <span class="t-small t-secondary">
-    A balance of <span class='chain-total_min'>   </span> <span class='chain-symbol'>   </span> will be sufficient to cover both your order and the transaction fee on the Polkadot network
+    A balance of <span class='cx-total_min'>   </span> <span class='cx-symbol'>   </span> will be sufficient to cover both your order and the transaction fee on the Polkadot network
 </span>
 <div class="kco-collapsable flex-col gap-medium">
     <div class="kco-collapse-toggler flex-row">
         <span class="material-symbols-outlined">chevron_right</span>
-        <span class="t-title-small">Accounts below <span class='chain-total_min'>   </span> <span class='chain-symbol'>   </span></span>
+        <span class="t-title-small">Accounts below <span class='cx-total_min'>   </span> <span class='cx-symbol'>   </span></span>
     </div>
 
     <div id='sv-accounts-inactive' class="kco-collapse-content flex-col gap-medium">
@@ -285,13 +299,13 @@ console.log('--> '+x.acc);
 	DOT.do_button_on();
 	e.innerHTML=DOT.ajaximg();
 	await DOT.topUpPay();
-	e.innerHTML=DOT.chain.topupButton;
+	e.innerHTML=DOT.cx.topupButton;
     },
 
     // Copy pay_acc to buffer + some effects
     cpbufACC: function() { var e = window.event.target;
-	if(!DOT.chain.pay_acc) return;
-	DOT.cpbuf(DOT.chain.pay_acc);
+	if(!DOT.cx.pay_acc) return;
+	DOT.cpbuf(DOT.cx.pay_acc);
 	var w=DOT.dom('sv-toggle-manual-field').querySelectorAll(".t-account-address")[0];
 	DOT.aFlash(w,0.02);
         DOT.a360(e,0.3);
@@ -309,12 +323,12 @@ console.log('--> '+x.acc);
 
         var w=DOT.dom('polkadot_work');
 
-        for(var i in DOT.chain) { w.querySelectorAll(".chain-"+i).forEach(e=>{
-	    if(i=='topupButton') e.innerHTML = DOT.chain[i];
-	    else e.innerHTML = DOT.h( DOT.chain[i]===undefined ? '': DOT.chain[i] );
+        for(var i in DOT.cx) { w.querySelectorAll(".cx-"+i).forEach(e=>{
+	    if(i=='topupButton') e.innerHTML = DOT.cx[i];
+	    else e.innerHTML = DOT.h( DOT.cx[i]===undefined ? '': DOT.cx[i] );
 	}); }
-	w.querySelectorAll(".chain-symbol").forEach(e=>{ e.innerHTML = (DOT.CUR===undefined?'':DOT.CUR); });
-        for(var i in DOT.nodes[DOT.CUR]) { w.querySelectorAll(".chain-"+i).forEach(e=>{ e.innerHTML = DOT.h( DOT.nodes[DOT.CUR][i]===undefined ? '':DOT.nodes[DOT.CUR][i] ); }); }
+	w.querySelectorAll(".cx-symbol").forEach(e=>{ e.innerHTML = (DOT.CUR===undefined?'':DOT.CUR); });
+        for(var i in DOT.nodes[DOT.CUR]) { w.querySelectorAll(".cx-"+i).forEach(e=>{ e.innerHTML = DOT.h( DOT.nodes[DOT.CUR][i]===undefined ? '':DOT.nodes[DOT.CUR][i] ); }); }
 
 	// collapse and exapnd sections
         document.querySelectorAll('.kco-collapse-toggler').forEach(e=>{
@@ -326,16 +340,24 @@ console.log('--> '+x.acc);
 	// accept terms and conditions and show manual payment address
 	document.querySelectorAll('.kco-tac-toggler:not(.disabled)').forEach(e=>{
 	    e.onclick = async function() {
-		this.setAttribute('val', (1*this.getAttribute('val')?'0':'1') );
+		var newval = (1*this.getAttribute('val')?'0':'1');
+		this.setAttribute('val', newval );
     		document.querySelector('.kco-manual-address-field').classList.toggle('blured');
     		var w=document.querySelector('.kco-tac-disabled'); if(w) w.classList.toggle('disabled');
     		document.querySelector('body').classList.toggle('kco-tac-accepted');
+// console.log('newval='+newval);
+		if(this.classList.contains('sv-terms')) {
+		    document.querySelectorAll('.sv-terms').forEach(e=>{ e.setAttribute('val',newval); });
+		    DOT.onterms(newval);
+		}
 
 		// Получить payment_account
-		if(DOT.chain.pay_acc.length<10 && this.getAttribute('val')=='1') {
-		    var json = await DOT.ajax_daemon('all_submit'); // сделать Ajax-запрос к демону
-		    DOT.chain.pay_acc = json.payment_account;
-		    document.querySelectorAll('.chain-pay_acc').forEach(e=>{e.innerHTML=DOT.chain.pay_acc});
+		if(DOT.cx.pay_acc.length<10 && newval=='1') {
+		    var json = DOT.ajax_daemon('init'); // сделать Ajax-запрос к демону
+		    if(json) {
+			DOT.cx.pay_acc = json.payment_account;
+			document.querySelectorAll('.cx-pay_acc').forEach(e=>{e.innerHTML=DOT.cx.pay_acc});
+		    }
 		}
 
 	    };
@@ -345,8 +367,8 @@ console.log('--> '+x.acc);
 	var qrBtn = document.querySelector('.show-qr-btn');
 	var qrModal = document.querySelector('.kco-qr-modal');
 	qrBtn.onclick = function(e) {
-	    if(!DOT.chain.pay_acc) return;
-	    DOT.dom('sv-QR').src='https://api.qrserver.com/v1/create-qr-code/?data='+DOT.chain.pay_acc;
+	    if(!DOT.cx.pay_acc) return;
+	    DOT.dom('sv-QR').src='https://api.qrserver.com/v1/create-qr-code/?data='+DOT.cx.pay_acc;
 	    qrModal.classList.add('opened');
 	};
 	qrModal.onclick = function(e) { qrModal.classList.remove('opened'); };
@@ -399,51 +421,36 @@ re_balance: function(bal,acc) {
 
 },
 
-// onredraw: function(){}, // Redraw page
-
 design: async function(tmpl) {
 
-    // DOT.chain.order = DOT.cx.order_id;
-    // DOT.chain.total = DOT.cx.total;
-    // DOT.cx.currency= "USDC-L"; // "DOT-L";
-
-    // не рандомировать!
     await DOT.LOADS_promice([
         'https://rsms.me/inter/inter.css',
         'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&.css',
     ],1,0);
 
-    DOT.dom('polkadot_work').innerHTML = "<style>"+DOT.css+"</style>"+DOT.template; // await DOT.LOAD(DOT.mainjs+"../sv-extension.html");
+    DOT.dom('polkadot_work').innerHTML = "<style>"+DOT.css+"</style>"+DOT.template;
 
     if(DOT.CUR) DOT.dom('sv-USDC').innerHTML = DOT.CUR;
     else if(DOT.cx.currency) DOT.dom('sv-USDC').innerHTML = DOT.cx.currency;
-    // DOT.onredraw();
 
     document.querySelectorAll('.t-tertiary').forEach(e=>{ e.style.display='none'; });
 
     DOT.SV.drawAccountList();
-    // DOT.onredraw();
 
     await DOT.init('no');
 
     // сперва менюшечки
-    var s="<select onchange=\"DOT.CUR=this.value;DOT.reboot(DOT.CUR);DOT.design();\">\n";
-    Object.keys(DOT.nodes).forEach(v => {s+="<option value='"+v+"'"+(v==DOT.CUR?" selected":'')+">"+v+"</option>\n";});
+    var s="<select onchange=\"DOT.CUR=this.value; DOT.f_save('kalatori_CUR',DOT.CUR); DOT.reboot(DOT.CUR);DOT.design();\">\n";
+    var f = DOT.f_read('kalatori_CUR');
+    Object.keys(DOT.nodes).forEach(v => {s+="<option value='"+v+"'"+(v==DOT.CUR
+        || v == f ?" selected":'')+">"+v+"</option>\n";});
     s+="</select>";
     DOT.dom('sv-CUR').innerHTML = s;
+
     DOT.SV.init();
 
     DOT.initb();
-
-    // DOT.onredraw();
-
-    // if(DOT.nodes[DOT.CUR].asset_id) document.querySelectorAll('.t-tertiary').forEach(e=>{ e.style.display='inline-block'; });
-
-    // DOT.SV.oneWallet();
 },
-
-
-
 
 
 //////////////////////////////////////////////////////////
@@ -453,9 +460,7 @@ solidus_init: function(cx) {
 	DOT.health_url = "/kalatori/blockchain_status";
 	DOT.cx.ajax_url = "/kalatori/address/check";
 
-	DOT.ajax_headers = DOT.ajax_headers_info = [
-		["X-CSRF-Token", document.querySelector('meta[name="csrf-token"]').getAttribute('content')],
-	];
+	DOT.ajax_headers = { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').getAttribute('content') };
 
 	DOT.button_on=function(){
 	    document.getElementById('modal_submit').style.display='block';
@@ -473,7 +478,7 @@ solidus_init: function(cx) {
 //////////////////////////////////////////////////////////
 
 magento_init: function(cx) {
-    if(cx) DOT.cx = cx;
+    if(cx) DOT.cx = {...DOT.cx, ...cx};
 
     DOT.store = 'magento';
 
@@ -488,9 +493,10 @@ magento_init: function(cx) {
 
     var p = window.checkoutConfig.payment.kalatorimax;
     if(!p) DOT.error('magento system error #0104');
-    DOT.mainjs = p.assets_base_url+"/"; // "https://magento.zymologia.fi/static/version1709653373/frontend/Magento/luma/en_US/Alzymologist_KalatoriMax/js"
-    DOT.chain.ajax_url = p.store_base_url+"alzymologist/payment/index"; // 'https://magento.zymologia.fi/alzymologist/payment/index'; // window.checkoutConfig.staticBaseUrl
-    DOT.health_url = DOT.chain.ajax_url+"?health=1";
+    DOT.cx.currences = p.currences;
+    DOT.cx.mainjs = p.assets_base_url+"/"; // "https://magento.zymologia.fi/static/version1709653373/frontend/Magento/luma/en_US/Alzymologist_KalatoriMax/js"
+    DOT.cx.ajax_url = p.store_base_url+"alzymologist/payment/index"; // 'https://magento.zymologia.fi/alzymologist/payment/index'; // window.checkoutConfig.staticBaseUrl
+    // DOT.health_url = DOT.cx.ajax_url+"?health=1";
 
     DOT.onpaid=function() {
 	DOT.do_button_on();
@@ -504,7 +510,7 @@ magento_init: function(cx) {
         );
     };
 
-    DOT.init();
+    DOT.design();
 },
 
 opencart3_init: function(cx) {
@@ -516,33 +522,10 @@ opencart3_init: function(cx) {
     DOT.class_error='';
     DOT.class_ok=cx.class_ok;
 
-    DOT.mainjs=cx.wpath+"catalog/view/javascript/polkadot/";
-    DOT.mainimg=cx.wpath+"catalog/view/theme/default/image/polkadot/";
+    cx.mainjs=cx.wpath+"catalog/view/javascript/polkadot/";
 
-    DOT.cx=cx;
-
-/*
-    var e = DOT.dom('form-polkadot').elements;
-    DOT..order_id = e.order_id.value;
-    DOT..total = e.total.value;
-    DOT..currency = e.currency.value;
-    DOT..ajax_url = e.ajax_url.value;
-    DOT..success_callback = e.success_callback.value;
-    DOT..cancel_callback = e.cancel_callback.value;
-
-//    debugger;
-//    console.log(DOT.cx); // Выведет значение order_id
-
-<input type='hidden' name='order_id' value='195'>
-<input type='hidden' name='total' value='4146.716'>
-<input type='hidden' name='wss' value='http://localhost:16726'>
-<input type='hidden' name='ajax_url' value='https://opencart3.zymologia.fi/index.php?route=extension/payment/polkadot/confirm&user_token=9pg
-<input type='hidden' name='currency' value='DOT'>
-<input type='hidden' name='merchant' value=''>
-    <input type='hidden' name='success_callback' value='https://opencart3.zymologia.fi/index.php?route=checkout/success'>
-    <input type='hidden' name='cancel_callback' value='https://opencart3.zymologia.fi/index.php?route=checkout/checkout'>
-*/
-    DOT.init();
+    DOT.cx = {...DOT.cx,...cx};
+    DOT.design();
 },
 
 opencart3_submit: function() {
@@ -550,8 +533,9 @@ opencart3_submit: function() {
     return DOT.all_submit();
 },
 
+onterms: function(x) {},
 
-// ==========================================
+// ============ P R E S T A  S H O P ===============
 
 presta_start: function(e) {
 
@@ -563,23 +547,46 @@ presta_start: function(e) {
     if(!e) return DOT.error('design error 02');
     // e.style.border='10px solid red';
     e.click();
+
+    // checkbox terms
+//    DOT.onterms = function(x) { //  блять согласен - поставить checkbox (ТОЛЬКО ДЛЯ ОТЛАДКИ!!!)
+
+
+
+//	DOT.dom("conditions_to_approve[terms-and-conditions]").classList.add('sv-terms');
+
+// name="conditions_to_approve[terms-and-conditions]" required="" type="checkbox" value="1" class="ps-shown-by-js">
+//      document.querySelectorAll("INPUT[type='checkbox'][name*='conditions_to_approve']")
+//	.forEach(e=>{
+//	    e.classList.add('sv-terms');
+        // e.parentNode.style.border='1px dotted red';
+        // e.setAttribute('checked',x?true:false);
+//      });
+//    }
+
 },
 
 presta_init: function(cx) {
-
-    console.debug('presta_init('+JSON.stringify(cx)+')');
-
     // запускается во время общей загрузки страницы, но выбор плагина DOT еще не сделан!
     DOT.store = 'presta';
-    DOT.chain.ajax_url = (cx.ajax_url ? cx.ajax_url : cx.ajax_host);
-    DOT.cx=cx;
-    DOT.mainjs = cx.wpath+'/js/';
+
+    cx.total = cx.amount;
+    cx.mainjs = cx.wpath+'/js/';
+    DOT.cx = {...DOT.cx,...cx};
 
     // определяем процедуру включения основной платежной кнопки
-    DOT.button_on=function() {
-        document.querySelectorAll("BUTTON[type='submit'].disabled").forEach(function(e){
+    DOT.button_oon=function() {
+	DOT.dom('payment-confirmation').querySelectorAll("BUTTON[type='submit'].disabled").forEach(function(e){
 	    e.classList.remove("disabled");
 	    e.disabled=null;
+	});
+    };
+
+    // И выключения
+    DOT.button_ooff=function() {
+	DOT.dom('payment-confirmation').querySelectorAll("BUTTON[type='submit']").forEach(function(e){
+	    e.classList.add("disabled");
+	    e.disabled=true;
 	});
     };
 
@@ -587,6 +594,13 @@ presta_init: function(cx) {
     var e=document.querySelector('FORM[action*="'+cx.module_name+'"]');
     if(!e) return DOT.error("Prestashop DOT plugin: Design error!");
     e.onsubmit=function(x) { DOT.all_submit(); return false; };
+
+    DOT.onterms=function(x) {
+	var w=DOT.dom("conditions_to_approve[terms-and-conditions]");
+	console.log('Terms: '+x+' ~ '+w.getAttribute('checked'));
+	if(1*w.checked != 1*x) w.click();
+    };
+
 
 /*
     // debug option
@@ -607,7 +621,10 @@ presta_init: function(cx) {
             DOT.f_save('pay_select',x.id);
 	    // а не наш ли это был выбран плагин?
 	    if(x.querySelectorAll("IMG[src*='polkadot.webp']").length) { // да, наш!
-		DOT.init();
+		DOT.button_ooff();
+		DOT.design();
+	    } else {
+		DOT.button_oon();
 	    }
         };
     });
@@ -634,7 +651,6 @@ presta_init: function(cx) {
 //====================================================================================================
 
     path: false,
-    mainjs: false,
 
     button_on: function(){},
     button_off: function(){},
@@ -642,8 +658,7 @@ presta_init: function(cx) {
     do_button_on: function(){ DOT.flag.processing_payment=0; DOT.button_on(); },
     do_button_off: function(){ DOT.flag.processing_payment=1; DOT.button_off(); },
 
-//    ajax_headers: false, // хедеры, подставляемые в платежный запрос аякса
-//    ajax_headers_info false, // хедеры, подставляемые в информационный запрос аякса
+//    ajax_headers: {}, // хедеры, подставляемые в платежный запрос аякса
 
     class_warning: 'alert alert-danger',
 
@@ -666,9 +681,10 @@ presta_init: function(cx) {
 
     // error - сообщение о серьезной ошибке
     error: function(s,info) { if(!info) info=DOT.inf();
-	DOT.reboot(); // сбросить все флаги и прочее
+	// DOT.reboot(); // сбросить все флаги и прочее
         DOT.do_button_on();
-	DOT.win_alert('DOT.error("'+info+'"):\n\n'+s);
+	DOT.win_alert(// 'DOT.error("'+info+'"):\n\n'+
+s);
 	return false;
     },
 
@@ -722,8 +738,6 @@ presta_init: function(cx) {
     f_del: function(k){ try { return window.localStorage.removeItem(k); } catch(e) { return ''; }},
 
 // ============== presta ==============
-    cx: {},
-
 add_ah: function(a, CUR) { // Add appropriate parameters for AssetHub fee payment
 	var N = DOT.nodes[CUR]; // Get currency node info
 	if (N && N.asset_id && N.kind === 'asset') { // Check if it's specifically an asset that requires this
@@ -758,8 +772,14 @@ noN: function(CUR){ return DOT.error("Currency not found: ["+CUR+"]"); },
 intHuman: function(x){ return 1*(''+x).replace(',',''); },
 
 chain_info: async function(CUR) {
+
+    console.log("chain_info");
+
     // соединение с блокчейном
-    if( ! (await DOT.connect(CUR)) ) return false;
+    if( ! (await DOT.connect(CUR)) ) {
+	console.log("chain_info: can't connect to "+CUR);
+	return false;
+    }
 
     var N=DOT.nodes[CUR];
     if(!N) return DOT.noN(CUR);
@@ -826,14 +846,15 @@ chain_info: async function(CUR) {
 
     if(!N.deposit) return DOT.error("Unknown ED (Existential Deposit)");
 
-    if(DOT.chain.total) {
-	N.total_planks = DOT.chain.total * (10 ** N.decimals);
+    if(DOT.cx.total) {
+	N.total_planks = DOT.cx.total * (10 ** N.decimals);
+	N.total_planks = Math.ceil(N.total_planks); // 131199999.99999999 ах ты ж сука блять
 	if(!N.total_planks) return DOT.error("Unknown total");
     }
 
     // выясним цену транзакции для НАШЕЙ КОНКРЕТНОЙ ЦЕНЫ
     if(!N.fee && !N.fee_planks) {
-        var example_acc = ( (''+DOT.chain.pay_acc).length > 10 ? DOT.chain.pay_acc : DOT.test_acc );
+        var example_acc = ( (''+DOT.cx.pay_acc).length > 10 ? DOT.cx.pay_acc : DOT.test_acc );
 	var example_amount = (N.total_planks ? N.total_planks : 10**(N.decimals+2) ); // Total или сотня в местной валюте
         N.x3 = await DOT.Transfer(example_acc, example_amount, CUR).paymentInfo(example_acc,DOT.add_ah({},CUR));
         // const { partialFee }
@@ -841,7 +862,8 @@ chain_info: async function(CUR) {
         if(!N.fee_planks) return DOT.error("Unknown fee");
     }
 
-    if(DOT.chain.total) {
+    if(DOT.cx.total) {
+
         N.total_add_planks = N.fee_planks + N.deposit;
         N.total_min_planks = N.total_planks + N.fee_planks + N.deposit;
 
@@ -852,76 +874,82 @@ chain_info: async function(CUR) {
 
 },
 
-
 daemon_get_info: async function() {
 
     if(!DOT.CUR && DOT.cx.currency) DOT.CUR = DOT.cx.currency; // USD
     if(DOT.CUR) DOT.CUR = DOT.CUR.toUpperCase();
 
-    // Обработали cx
-    if(DOT.cx.ajax_url) DOT.chain.ajax_url = DOT.cx.ajax_url;
-    if(DOT.cx.order_id) DOT.chain.order = DOT.cx.order_id;
-    if(DOT.cx.total) DOT.chain.total = 1*((''+DOT.cx.total).replace(/^.*?([0-9\.]+).*?$/g,'$1'));
+    if(DOT.cx.daemon_direct) {
+	if(!DOT.cx.status_url) DOT.cx.status_url = DOT.cx.ajax_url+'/v2/status';
+	if(!DOT.cx.order_url) DOT.cx.order_url = DOT.cx.ajax_url+'/v2/order/*';
+    } else {
+	if(!DOT.cx.status_url) DOT.cx.status_url = DOT.cx.ajax_url+(DOT.cx.ajax_url.indexOf('?')<0?'?':'&')+'endpoint=status';
+	if(!DOT.cx.order_url) DOT.cx.order_url = DOT.cx.ajax_url+(DOT.cx.ajax_url.indexOf('?')<0?'?':'&')+'endpoint=order&currency=@';
+    }
 
     // Взяли список блокчейнов
-	if(1 || !DOT.chain.ajax_url) { // Local daemon direct
-		// Setup enpoints
-		DOT.chain.ajax_url = (DOT.cx.daemon_direct ? DOT.cx.daemon_direct : 'http://localhost:16726');
-		// DOT.health_url = DOT.chain.ajax_url+'/v2/health'; // нахуй не нужен так-то
-		DOT.status_url = DOT.chain.ajax_url+'/v2/status';
-		DOT.order_url = DOT.chain.ajax_url+'/v2/order/*';
+    // Setup enpoints
+    // DOT.health_url = DOT.cx.ajax_url+'/v2/health'; // нахуй не нужен так-то
 
-		// Get Currences /status
-		console.log("Get Currences /status = "+DOT.status_url);
-		try {
-		    var s = await DOT.AJAX( DOT.status_url );
-		    if(!s) DOT.huemoe();
-		} catch(er) {
-		    return DOT.error("Can't connect daemon: "+DOT.status_url);
-		}
-		try {
-		    var j = JSON.parse(s);
-		    if(!j.supported_currencies || 0==Object.keys(j).length) return DOT.error("/status: No currencies");
+    // Get Currences /status
+    console.log("Get Currences /status = "+DOT.cx.status_url);
+    try {
+	var j = DOT.AJAX( DOT.cx.status_url );
+	if(j.error) DOT.huemoe();
+    } catch(er) {
+	return DOT.error("Can't connect daemon: "+DOT.cx.status_url);
+    }
 
-		    if(DOT.cx.currences) { // Оставим только разрешенные
-			var m1 = Object.keys(j.supported_currencies);
-			var m2 = DOT.cx.currences.split(',');
-			var del = m1.filter(x => !m2.includes(x));
-			del.forEach(x=>delete(j.supported_currencies[x]));
-		    }
+    try {
+        if(!j.supported_currencies || 0==Object.keys(j).length) return DOT.error("/status: No currencies");
 
-		    DOT.nodes=j.supported_currencies;
+        if(DOT.cx.currences) { // Оставим только разрешенные
+	    // возможные:
+	    var m1 = Object.keys(j.supported_currencies);
+	    // разрешенные:
+	    var m2 = DOT.cx.currences.replace(/,/g,' ').split(' ');
+	    // 	подходящие из разрешенных (найти аналоги для USD или EUR типа USDC):
+            for(var i in m2) { var x=m2[i]; if(x.substring(0,DOT.cx.currency.length)!=DOT.cx.currency) delete m2[i]; }
+	    // удаляемые
+	    var del = m1.filter(x => !m2.includes(x));
+	    del.forEach(x=>delete(j.supported_currencies[x]));
 
-		} catch(er) { return DOT.error("/status: "+er); }
+	    if(0==Object.keys(j.supported_currencies).length) { // Нет разрешенных!
+		return DOT.error("Currency "+DOT.cx.currency+" not allowed");
+	    }
 
-		// найти аналоги для USD или EUR
-		if(!DOT.nodes[DOT.CUR] && (DOT.CUR=='USD' || DOT.CUR=='EUR')) {
-		    for(var x in DOT.nodes) { if(x.substring(0,3)==DOT.CUR) { DOT.CUR=x; break; } }
-		}
-		if(!DOT.nodes[DOT.CUR]) { // ну тогда найти хоть что
-		    for(var x in DOT.nodes) { DOT.CUR=x; break; }
-		}
-	} else {
-	    // потом решим, что делать, если не демон напрямую
-	    console.log('DOT.chain.ajax_url: '+DOT.chain.ajax_url);
-	}
+    	    DOT.nodes=j.supported_currencies;
 
-	// Выяснили, какой у нас блокчейн
-	console.log('DOT.CUR: '+DOT.CUR);
-	var N = DOT.nodes[DOT.CUR];
-	if(!N) return DOT.noN(DOT.CUR);
+	    if(!DOT.nodes[DOT.CUR]) { // ну тогда выбрать тот, что был сохранен
+		DOT.CUR = DOT.f_read('kalatori_CUR');
+	    }
 
-	// Уже опрашивали этот блокчейн? По второму разу не будем, пожалуй.
-	if(!N.fee) {
-	    // Опрос блокчейна
-	    await DOT.chain_info(DOT.CUR);
+	    if(!DOT.nodes[DOT.CUR]) { // ну тогда выбрать первый попавшийся
+    		for(var x in DOT.nodes) { DOT.CUR=x; break; }
+	    }
 
-	    // Вот йобаная проверка на недостаточную цену
-	    if(N.total_planks <= N.fee_planks + N.deposit) return DOT.error("Error: Total can be more than "+DOT.indot( N.fee_planks + N.deposit, "0000X")+" (Deposit+Fee)");
-	}
+        }
 
-	// console.log(N);
-	return true;
+    } catch(er) { return DOT.error("/status: "+er); }
+
+
+    // Выяснили, какой у нас блокчейн
+    console.log('DOT.CUR: '+DOT.CUR);
+    var N = DOT.nodes[DOT.CUR];
+    if(!N) return DOT.noN(DOT.CUR);
+
+    // Уже опрашивали этот блокчейн? По второму разу не будем, пожалуй.
+    if(!N.total_planks) {
+        // Опрос блокчейна
+        await DOT.chain_info(DOT.CUR);
+        // Вот йобаная проверка на недостаточную цену
+    } else {
+	if(!N.api) await DOT.connect(DOT.CUR);
+    }
+
+    if(N.total_planks <= N.fee_planks + N.deposit) return DOT.error("Error: Total can be more than "+DOT.indot( N.fee_planks + N.deposit, "0000X")+" (Deposit+Fee)");
+
+    return true;
 },
 
 
@@ -945,19 +973,7 @@ indot: function(x,fmt) { // fmt: '00x' - два символа после зап
     return X;
 },
 
-ajax_process_errors: function(s0) {
-    var s=''+s0; s=s.replace(/^\s+/g,'').replace(/\s+$/g,'');
-
-    var w=s.split('{'); // }
-    if(w.length>1 && w[0]!='') {
-	DOT.Talert("PHP WARNING: "+DOT.h(w[0]));
-	s=s.substring(w[0].length);
-    }
-
-    try { var json=JSON.parse(s); } catch(e) { return DOT.error("Json error: ["+DOT.h(s0)+"]"); }
-    // патчим старый формат
-    // for(var n in json) { if(n.substring(0,7)=='daemon_') { json[n.substring(7)]=json[n]; } }
-
+ajax_process_errors: function(json) {
     if(json.error) {
 
         if(json.error.warning) DOT.Talert('warning: '+json.error.warning);
@@ -975,43 +991,37 @@ ajax_process_errors: function(s0) {
 },
 
 
-ajax_daemon: async function(info) {
+ajax_daemon: function(info) {
     var N=DOT.nodes[DOT.CUR];
     console.debug('ajax_daemon('+info+')');
-    if(!DOT.chain.total || !N.total_planks) return DOT.error('DOT plugin error 0801: empty total');
+    if(!DOT.cx.total || !N.total_planks) return DOT.error('DOT plugin error 0801: empty total');
 
+    if(!DOT.cx.order_url) return DOT.error('order_url not set'); // напрямую с демоном
 
-    if(!DOT.order_url) return DOT.error('order_url not set'); // напрямую с демоном
-    // order точно должен быть
-    if(!DOT.chain.order) return DOT.error('DOT plugin error 0900: empty order');
+    var data = {
+	order: (DOT.cx.shop_id?DOT.cx.shop_id+'_':'')+DOT.cx.order_id,
+	currency: DOT.CUR,
+	amount: DOT.cx.total,
+    };
+    if(DOT.destination) data.destination = DOT.destination;
+    if(DOT.ondata) data=DOT.ondata(data); // Если нужен обработчик
 
-	var url=DOT.order_url.replace('*',DOT.chain.order); // /v2/order/*
-	var data = {
-		order: DOT.chain.order,
-		currency: DOT.CUR,
-		// callback: 'https://natribu.org/fi',
-		amount: DOT.chain.total,
-	};
-	if(DOT.destination) data.destination = DOT.destination;
+    data = JSON.stringify(data);
+    var url = DOT.cx.order_url.replace('*',DOT.cx.order_id); // /v2/order/*
+    var url = DOT.cx.order_url.replace('@',DOT.CUR); // /v2/order/*
 
-	data = JSON.stringify(data);
-
-	var s = await DOT[( DOT.AJAX_ALTERNATIVE ? 'AJAX_ALTERNATIVE' : 'AJAX' )]( url, data, DOT.ajax_headers );
-
-        var json = DOT.ajax_process_errors(s);
-        if(!json) {
-		console.debug('ajax_daemon[!]: error');
-		return false;
-        }
-
-        // if(!DOT.chain.ajax_url) return DOT.error('DOT plugin error 0802: empty ajax_url');
-        // var data = JSON.stringify({ order_id: DOT.chain.order, price: DOT.chain.total });
-        // можно указать свой альтернативный AJAX для особых уродцев типа WooCommerce
-	json.ans = (''+json.payment_status).toLowerCase(); // (pending, paid)
-
+    if( DOT.flag.end ) return false;
+    var j = DOT.AJAX( url, data, DOT.ajax_headers );
+    if( DOT.flag.end ) return false;
+    var json = DOT.ajax_process_errors(j);
+    if(!json) {
+	console.debug('ajax_daemon[!]: error');
+	return false;
+    }
+    json.ans = (''+json.payment_status).toLowerCase(); // (pending, paid)
     DOT.json = json;
-
     console.debug('ajax_daemon ans = '+json.ans);
+    if(DOT.onjson) json=DOT.onjson(json);
     if(json.ans =='pending' || json.ans == 'paid') return json;
     return DOT.error('ERROR OPT:\n\n '+JSON.stringify(json));
 },
@@ -1027,18 +1037,21 @@ waitManual: {
         if(DOT.waitManual.id!==false) return; // уже запущено
 	DOT.waitManual.id = setInterval(
 	    async function(){ // опрос демона
-		if(    !DOT.chain.pay_acc
-		    || !DOT.chain.my_acc
+
+		if( DOT.flag.end ) return DOT.waitManual.stop();
+
+		if(    !DOT.cx.pay_acc
+		    || !DOT.cx.my_acc
 		    || !DOT.api
 		) {
 		    // console.log("waitManual");
 		    return; // если нету платежного аккаунта или не выбран свой
 		}
 		// console.log("waitManual!");
-		var json = await DOT.ajax_daemon('waitManual'); // сделать Ajax-запрос к демону
+		var json = DOT.ajax_daemon('waitManual'); // сделать Ajax-запрос к демону
 		if(json && json.ans == 'paid' ) {
+		    DOT.flag.end = 1; // Всё, закончили
 		    console.debug("[!] waitManual: paid!");
-		    DOT.waitManual.stop();
 		    DOT.onpaid(json,'waitManual');
 		}
 	    },
@@ -1062,14 +1075,17 @@ waitDaemon: {
 	DOT.waitDaemon.stop();
 	DOT.waitDaemon.id = setInterval(
 	    async function(){ // опрос демона
-		var json = await DOT.ajax_daemon('waitDaemonInterval'); // сделать Ajax-запрос к демону
+
+		if( DOT.flag.end ) return DOT.waitDaemon.stop();
+
+		var json = DOT.ajax_daemon('waitDaemonInterval'); // сделать Ajax-запрос к демону
 		if(json && json.ans == 'paid' ) {
+		    DOT.flag.end = 1; // Всё, закончили
 		    console.debug("[!] waitDaemon: paid!");
-		    DOT.waitDaemon.stop();
 		    DOT.onpaid(json,'waitDaemon');
 		}
 	    },
-	1000);
+	3000);
 
 	// start progressbar if not yet
 	DOT.progress.run(0,
@@ -1084,26 +1100,23 @@ waitDaemon: {
     },
 },
 
-all_submit: async function(y) {
+all_submit: function(y) {
     console.debug('all_submit('+(y===undefined?'':y)+')');
     if(!y) {
-	if(!DOT.chain.my_acc) {
-	    console.debug('Account not selected, return');
-	    return;
-	}
+	if(!DOT.cx.my_acc) return DOT.error('Account not selected, return');
 	DOT.Talert('clear');
 	DOT.alert('clear');
     }
 
     DOT.do_button_off();
 
-    var json = await DOT.ajax_daemon('all_submit'); // сделать Ajax-запрос к демону
+    var json = DOT.ajax_daemon('all_submit'); // сделать Ajax-запрос к демону
     if(json === false) return false;
 
     // Paid
     if( json.ans == 'paid' ) {
+        DOT.flag.end = 1; // Всё, закончили
 	console.debug("[ !!!! ] paid!");
-	DOT.progress.stop();
 	DOT.onpaid(json,'all_submit');
 	return true;
     }
@@ -1111,13 +1124,13 @@ all_submit: async function(y) {
     // Waiting
     if( json.ans == 'pending') {
 	if( json.payment_account && 1*json.amount ) DOT.setPayAccount(json.payment_account);
-	console.debug('[#] Waiting for payment: '+DOT.chain.pay_acc );
+	console.debug('[#] Waiting for payment: '+DOT.cx.pay_acc );
 	if(DOT.flag.paid) {
 	    console.log("Transfer already done!");
 	    return false;
 	}
-	console.log("Transfer "+DOT.indot( DOT.nodes[DOT.CUR].total_planks, 1)+"\nFrom: "+DOT.chain.my_acc+"\nTo: "+DOT.chain.pay_acc);
-	DOT.payWithPolkadot(DOT.chain.my_acc, DOT.nodes[DOT.CUR].total_planks, DOT.chain.pay_acc);
+	console.log("Transfer "+DOT.indot( DOT.nodes[DOT.CUR].total_planks, 1)+"\nFrom: "+DOT.cx.my_acc+"\nTo: "+DOT.cx.pay_acc);
+	DOT.payWithPolkadot(DOT.cx.my_acc, DOT.nodes[DOT.CUR].total_planks, DOT.cx.pay_acc);
 	return true;
     }
 
@@ -1132,6 +1145,8 @@ progress: {
     id: 0,
     fn: function(){},
     run: function(x, fn) {
+	    if( DOT.flag.end ) return DOT.progress.stop();
+
 	    if(x===0) { DOT.progress.now=0; DOT.progress.fn=function(){}; }
 	    if(fn) DOT.progress.fn=fn;
 
@@ -1179,16 +1194,28 @@ progress: {
     },
 },
 
-    AJAX: async function(url,data,headers) {
-	if(!headers) headers=[];
-        headers.push(["Content-Type", "application/json"]);
-        headers.push(["X-Requested-With", "XMLHttpRequest"]);
-        var r;
-		if(data) r = await fetch(url,{ method:'POST',mode:'cors',credentials:'include',headers:headers,body: data});
-		else r = await fetch(url,{ method:'GET',mode:'cors',credentials:'include',headers:headers});
-        const txt = await r.text();
-        if(r.ok) return txt;
-        return DOT.error("Error: " + r.status + " "+txt);
+    AJAX: function(url,data,headers) {
+	if(!headers) headers={};
+    	headers["Content-Type"] = "application/json";
+    	headers["X-Requested-With"] = "XMLHttpRequest";
+	var xhr = new XMLHttpRequest();
+	xhr.open((data?"POST":"GET"), url, false);
+	xhr.withCredentials = true; // Equivalent to "credentials": "include"
+	for(var x in headers) xhr.setRequestHeader(x, headers[x]);
+	xhr.send(data);
+	var s0 = ''+xhr.responseText;
+	s=s0.replace(/^\s+/g,'').replace(/\s+$/g,'');
+        var w=s.split('{'); // }
+	if(w.length>1 && w[0]!='') {
+	    DOT.Talert("PHP WARNING: "+DOT.h(w[0]));
+	    s=s.substring(w[0].length);
+	}
+	var json;
+        try { json=JSON.parse(s); } catch(e) {
+	    json=JSON.stringify({error:"Error parse JSON",original:s0});
+	}
+	json.http_code_dot = xhr.status;
+	return json;
     },
 
     LOAD: async function(url) {
@@ -1199,6 +1226,7 @@ progress: {
     },
 
     Transfer: function(to, price, CUR) {
+	price=Math.ceil(price);	// 131199999.99999999 ах ты ж сука блять
 	console.log("Transfer: "+to+" "+price+" "+CUR);
 	if(!CUR) CUR=DOT.CUR; var N = DOT.nodes[CUR];
 	if(!N.asset_id) return N.api.tx.balances.transferKeepAlive(to, price); // DOT
@@ -1206,6 +1234,7 @@ progress: {
     },
 
     TransferAll: function(to, bal, CUR) {
+	bal=Math.ceil(bal);
 	if(!CUR) CUR=DOT.CUR; var N = DOT.nodes[CUR], hash=false;
 	if(!N.asset_id) { // Polkadot
 	    hash = N.api.tx.balances.transferAll(to, false);
@@ -1216,87 +1245,153 @@ progress: {
 	return hash;
     },
 
-payWithPolkadot: async function(SENDER, price, to, CUR) {
-	if(!CUR) CUR=DOT.CUR;
+	payWithPolkadot: async function(SENDER, price, to, CUR) {
+		if(!CUR) CUR=DOT.CUR;
+		var N = DOT.nodes[CUR]; // Get currency info
 
-	console.log("============> DOT.payWithPolkadot()");
+		console.log("============> DOT.payWithPolkadot()");
+		DOT.Talert('clear');
+		await DOT.connect(CUR);
+		if (!N.api) { return DOT.error("Failed to connect to API for " + CUR); }
 
-	DOT.Talert('clear');
-	await DOT.connect(CUR);
+		if(DOT.debug) DOT.Talert('Start balance: '+ await DOT.Balance(to) );
 
-	if(DOT.debug) DOT.Talert('Start balance: '+ await DOT.Balance(to) );
+		// Waiting for signature
+		console.log("Wallet asking for signature from:", DOT.cx.my_wallet);
 
-        // Waiting for signature
-	console.log("Wallet asking for signature: "+DOT.chain.my_wallet);
-
-	const injector = await polkadotExtensionDapp.web3FromAddress(SENDER);
-        DOT.SV.page_Process(); // Transaction is signed. Waiting for transaction block
-
-	await DOT.Transfer(to, price, CUR).signAndSend(SENDER,
-	    DOT.add_ah({signer: injector.signer},CUR)
-	, ({ status }) => {
-
-	    // start progressbar if not yet
-            if(!DOT.progress.id) DOT.progress.run(0,
-		    function(){
-			DOT.error('Error: timeout');
-			setTimeout(DOT.progress.stop,800);
-		    }
-	    );
-
-	    if(status.isInBlock || status.type == 'InBlock') {
 		try {
-		    var x=status.asInBlock.toString();
-		    console.log("===> status.isInBlock: " + DOT.h(x) );
-		    if(x) DOT.chain.my_hash=x;
-		    DOT.SV.page_InBlock(DOT.chain.my_hash); // Transaction is completes. Waiting for daemon
-		} catch(er){ console.log("Erroro 773: "+er); }
-	    } else if(status.isFinalized || status.type == 'Finalized') {
-		try { DOT.chain.my_hash = status.asFinalized.toString(); } catch(er) { console.log(er); }
-		console.log("===> status.isFinalized: "+DOT.chain.my_hash);
-		DOT.progress.stop();
-		// payment done!!!
-		DOT.flag.paid = 1; // чтоб второй раз не платить
-		console.log('payment_done IsFinalized with hash: '+DOT.chain.my_hash);
-		DOT.SV.page_IsFinalized('Finalized'); // Transaction is completes. Waiting for daemon
-		return;
-	    } else {
-		console.log("===> status: "+status.type);
-	    }
-	}).catch((error) => {
-            DOT.progress.stop(); // stop progressbar
-	    DOT.disconnect();
-	    DOT.error('transaction failed: '+error);
-        });
+			const injector = await polkadotExtensionDapp.web3FromAddress(SENDER);
 
-    },
+			// --- Determine the correct transaction call ---
+			let transferCall;
+			if (N.asset_id && N.kind === 'asset') {
+				// Asset Transfer: Ensure price is correctly formatted if needed by API
+				const adjustedAmount = BigInt(Math.ceil(price)); // Use BigInt for large numbers
+				transferCall = N.api.tx.assets.transferKeepAlive(N.asset_id, to, adjustedAmount); // Pass simple assetId number here
+			} else {
+				// Native Transfer: Ensure price is correctly formatted if needed by API
+				const adjustedAmount = BigInt(Math.ceil(price)); // Use BigInt for large numbers
+				transferCall = N.api.tx.balances.transferKeepAlive(to, adjustedAmount);
+			}
+
+			// --- Construct signerOptions specifically for signAndSend ---
+			// Start with basic signer option
+			let signerOptions = { signer: injector.signer };
+
+			// Use add_ah ONLY to add fee-related options if necessary
+			signerOptions = DOT.add_ah(signerOptions, CUR); // add_ah should now correctly add MultiLocation for asset fees
+
+			console.log("Calling signAndSend with SENDER:", SENDER);
+			console.log("Signer Options being passed:", JSON.stringify(signerOptions));
+
+			DOT.SV.page_Process(); // Transaction is signed. Waiting for transaction block
+
+			// --- Sign and Send ---
+			await transferCall.signAndSend(SENDER, signerOptions, ({ status, events = [], dispatchError }) => {
+				// Handle status updates... (existing logic)
+				console.log("Transaction status:", status.type);
+
+				// start progressbar if not yet
+				if(!DOT.progress.id && !status.isFinalized && !status.isInvalid) DOT.progress.run(0,
+					function(){
+						DOT.error('Error: timeout waiting for finalization');
+						setTimeout(DOT.progress.stop, 800);
+					}
+				);
+
+
+				if (status.isInBlock) {
+					DOT.cx.my_hash = status.asInBlock.toHex();
+					console.log('Transaction included in block hash:', DOT.cx.my_hash);
+					DOT.SV.page_InBlock(DOT.cx.my_hash); // Update UI: In Block
+				} else if (status.isFinalized) {
+					DOT.cx.my_hash = status.asFinalized.toHex();
+					console.log('Transaction finalized in block hash:', DOT.cx.my_hash);
+
+					// Check for dispatchError for success/failure
+					if (dispatchError) {
+						let errorInfo = "Transaction failed";
+						if (dispatchError.isModule) {
+							const decoded = N.api.registry.findMetaError(dispatchError.asModule);
+							const { docs, name, section } = decoded;
+							errorInfo = `${section}.${name}: ${docs.join(' ')}`;
+							console.error(`Transaction Error: ${errorInfo}`);
+						} else {
+							errorInfo = dispatchError.toString();
+							console.error(`Transaction Error: ${errorInfo}`);
+						}
+						DOT.progress.stop();
+						DOT.error('Transaction failed: ' + errorInfo);
+						// Optionally disconnect or reset state here
+						DOT.disconnect(CUR);
+
+					} else {
+						// Transaction succeeded
+						console.log('Transaction succeeded.');
+						DOT.progress.stop();
+						DOT.flag.paid = 1; // Mark as paid
+						DOT.SV.page_IsFinalized('Finalized'); // Update UI: Finalized successfully
+					}
+					// Unsubscribe not needed here as signAndSend unsubscribes on finalization/error
+
+				} else if (status.isInvalid || status.isDropped || status.isUsurped) {
+					console.error("Transaction Error Status:", status.type);
+					DOT.progress.stop();
+					DOT.error('Transaction failed with status: ' + status.type);
+					DOT.disconnect(CUR); // Disconnect on failure
+				}
+				// Handle other statuses if needed (e.g., Ready, Broadcast)
+
+			}).catch((error) => {
+				// Catch errors from the signAndSend promise itself (e.g., user rejection)
+				console.error('signAndSend error:', error);
+				DOT.progress.stop(); // stop progressbar
+				DOT.disconnect(CUR);
+				// Provide a user-friendly error based on common PolkadotJS error types
+				let userMessage = 'Transaction failed.';
+				if (error.message.includes('Cancelled')) {
+					userMessage = 'Transaction cancelled by user.';
+				} else if (error.message.includes('rejected') || error.message.includes('denied')) {
+					userMessage = 'Transaction rejected by wallet.';
+				} else {
+					userMessage = 'Transaction failed: ' + error.message; // Include original error message
+				}
+				DOT.error(userMessage);
+			});
+
+		} catch (error) {
+			// Catch errors from web3FromAddress or other async operations before signAndSend
+			console.error('Error preparing transaction:', error);
+			DOT.error('Error preparing transaction: ' + error.message);
+			DOT.do_button_on(); // Re-enable button if preparation fails
+		}
+	},
 
 
     onpaid: function(json,info) {
         if(json.redirect) return DOT.redirect(json.redirect);
-
-	return DOT.redirect('https://natribu.org'); // LLEO
-
+	// return DOT.redirect('https://natribu.org'); // LLEO
 	return DOT.error('Paid success. What?! Ask admin, what can we do now?');
     },
 
     // ИЗМЕНЕНИЕ БАЛАНСА
     onBalance: async function(from,to,amount){
+	if(DOT.flag.end) return;
 
 	// Это событие связано с платежным аккаунтом?
-	if( DOT.chain.pay_acc && ( DOT.chain.pay_acc == to || DOT.chain.pay_acc == from) ) {
+	if( DOT.cx.pay_acc && ( DOT.cx.pay_acc == to || DOT.cx.pay_acc == from) ) {
 	    console.debug("onBalance (pay_acc): "+DOT.indot(amount,1)+ "\n from: "+from+"\n to: "+to );
 
 	    // И сходим проверим баланс, а там и снова обновим re_balance()
-	    setTimeout(function(){ DOT.getBalance(DOT.chain.pay_acc,'onbalance:p'); },10);
+	    setTimeout(function(){ DOT.getBalance(DOT.cx.pay_acc,'onbalance:p'); },10);
 
 	    // С цeлевого аккаунта что-то сняли? Это мог сделать только демон!
-	    if( DOT.chain.pay_acc == from ) {
+	    if( DOT.cx.pay_acc == from ) {
 		return DOT.SV.page_IsFinalized('onBalance:from'); // ждем реакции демона
 	    }
 
 	    // Иначе это нам кто-то что-то прислал на наш платежный
-	    DOT.chain.my_acc = from; // платим с этого аккаунта
+	    DOT.cx.my_acc = from; // платим с этого аккаунта
 	    var find=0; for(var e of DOT.accs) { if(e.acc == from) { find=1; break; } }
 	    if(!find) { // добавить такой аккаунт если не было
 		DOT.accs.push({ acc: from, wallet: 'Manual', name: 'Secret Philanthropist' }); // добавить такой адрес
@@ -1305,13 +1400,13 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 	    }
 
 	    // возьмем баланс из amount, вдруг пока мы будем его заново читать, его уже оприходуют?
-	    if(!DOT.chain.pay_bal) DOT.chain.pay_bal=0;
-	    DOT.chain.pay_bal += ( DOT.chain.pay_acc == to ? 1 : -1) * parseInt(amount);
+	    if(!DOT.cx.pay_bal) DOT.cx.pay_bal=0;
+	    DOT.cx.pay_bal += ( DOT.cx.pay_acc == to ? 1 : -1) * parseInt(amount);
 	    // И нарисовать его, если он где висит
-	    DOT.setBalance( DOT.chain.pay_acc, DOT.chain.pay_bal );
+	    DOT.setBalance( DOT.cx.pay_acc, DOT.cx.pay_bal );
 
 	    // ушла уже нужная сумма (демон сработал)?
-	    if( DOT.chain.pay_bal >= DOT.nodes[DOT.CUR].total_planks ) {
+	    if( DOT.cx.pay_bal >= DOT.nodes[DOT.CUR].total_planks ) {
 		return DOT.SV.page_IsFinalized('onBalance:summ'); // ждем реакции демона
 	    }
 
@@ -1333,12 +1428,12 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 
     setPayAccount: function(acc) {
 	acc = DOT.west(acc); if(!acc) return DOT.error('error payment_account format');
-	if( !DOT.chain.pay_acc ) {
+	if( !DOT.cx.pay_acc ) {
             var k=0;
 	    document.querySelectorAll('.B_pay_account').forEach((e)=>{ e.className='B_'+acc; k++; });
             if(k) DOT.getBalance(acc,'setPayAccount');
 	}
-	DOT.chain.pay_acc=acc;
+	DOT.cx.pay_acc=acc;
 	return acc;
     },
 
@@ -1359,6 +1454,11 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 
     html_acc: function(a) {
 	if(a.elem) return;
+	if(!a.acc) {
+	    console.log('############ s t r a n g e ############');
+	    console.log(a);
+	    a.acc='';
+	}
 	var r={
 	    ajaximg: DOT.ajaximg(),
 	    name: DOT.h(a.name),
@@ -1383,7 +1483,7 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 <span class='t-account-balance'>
     <span class='B_{acc}' fmt='00x'>{ajaximg}</span>
 </span>
-<span class='t-account-balance chain-symbol'></span>
+<span class='t-account-balance cx-symbol'></span>
 <button class='kco-select'>
     <span>Checkout</span>
     <span class='material-symbols-outlined'>arrow_right_alt</span>
@@ -1435,7 +1535,7 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 
     init: async function(mode) {
 
-	DOT.chain.topupButton = (DOT.is_test() ? "&#128176;" : ''); // 💰
+	DOT.cx.topupButton = (DOT.is_test() ? "&#128176;" : ''); // 💰
 	console.log('DOT init()');
         DOT.Talert('clear');
 	DOT.do_button_on();
@@ -1443,14 +1543,13 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 	// Load scripts if need
 	var originalDefine = window.define;
 	window.define=undefined; // delete window.define; // йобаные патчи для Magento
-	  if(DOT.mainjs) await DOT.LOADS_promice([
-	    DOT.mainjs+'bundle-polkadot-util.js',
-	    DOT.mainjs+'bundle-polkadot-util-crypto.js',
-	    DOT.mainjs+'bundle-polkadot-extension-dapp.js',
-	    DOT.mainjs+'bundle-polkadot-types.js',
-	    DOT.mainjs+'bundle-polkadot-api.js',
-	    DOT.mainjs+'bundle-polkadot-keyring.js', // west
-	    // DOT.mainjs+'identicon.js?2'
+	  if(DOT.cx.mainjs) await DOT.LOADS_promice([
+	    DOT.cx.mainjs+'bundle-polkadot-util.js',
+	    DOT.cx.mainjs+'bundle-polkadot-util-crypto.js',
+	    DOT.cx.mainjs+'bundle-polkadot-extension-dapp.js',
+	    DOT.cx.mainjs+'bundle-polkadot-types.js',
+	    DOT.cx.mainjs+'bundle-polkadot-api.js',
+	    DOT.cx.mainjs+'bundle-polkadot-keyring.js', // west
 	  ],1,0);
 	window.define = originalDefine; // йобаные патчи для Magento
 
@@ -1466,7 +1565,10 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 	DOT.html_accounts();
 
 	// Getting info
-	if(! (await DOT.daemon_get_info()) ) return;
+	if(! (await DOT.daemon_get_info()) ) {
+	    console.log('DOT.daemon_get_info() return error!');
+	    return;
+	}
 
 	if(!mode) DOT.initb();
     },
@@ -1474,7 +1576,7 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
     initb: async function() {
 	// узнать все балансы, которые неизвестны
 	for(var a of DOT.accs) { if(a.balance === false) a.balance = await DOT.getBalance(a.acc,'init'); }
-	if((''+DOT.chain.pay_acc).length > 10) DOT.getBalance(DOT.chain.pay_acc,'init:p');
+	if((''+DOT.cx.pay_acc).length > 10) DOT.getBalance(DOT.cx.pay_acc,'init:p');
 	// Запустить следилку за мануальным пополнением
 	DOT.waitManual.start();
     },
@@ -1509,9 +1611,9 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 
     // Top up pay_account from Alice for 1/3 of summ (DOT.debug=1 or 'zymologia.fi' present in url)
     topUpPay: async function() {
-	document.querySelectorAll('.B_'+DOT.chain.pay_acc).forEach((e)=>{ e.innerHTML=DOT.ajaximg(); });
+	document.querySelectorAll('.B_'+DOT.cx.pay_acc).forEach((e)=>{ e.innerHTML=DOT.ajaximg(); });
 	document.querySelectorAll('.B_pay_bal').forEach((e)=>{ e.innerHTML=DOT.ajaximg(); });
-	DOT.chain.my_hash = await DOT.topUpFromAlice( DOT.chain.pay_acc, Math.ceil(DOT.nodes[DOT.CUR].total_planks / 2) );
+	DOT.cx.my_hash = await DOT.topUpFromAlice( DOT.cx.pay_acc, Math.ceil(DOT.nodes[DOT.CUR].total_planks / 2) );
     },
 
     // Top up Balance from Alice for test sites (DOT.debug=1 or 'zymologia.fi' present in url)
@@ -1622,8 +1724,8 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 
 	// console.log("setBalance('"+acc+"','"+bal+"')"+DOT.inf());
 
-	if(acc==DOT.chain.pay_acc) {
-	    DOT.chain.pay_bal = bal; // Если это наш баланс, то сохранить
+	if(acc==DOT.cx.pay_acc) {
+	    DOT.cx.pay_bal = bal; // Если это наш баланс, то сохранить
 	    document.querySelectorAll('.B_pay_bal').forEach((e)=>{ e.innerHTML=DOT.indot( bal, e.getAttribute('fmt') ); });
 	}
 	document.querySelectorAll('.B_'+acc).forEach((e)=>{ e.innerHTML=DOT.indot( bal, e.getAttribute('fmt') ); });
@@ -1675,10 +1777,14 @@ payWithPolkadot: async function(SENDER, price, to, CUR) {
 	var wss = N.rpc_url.replace(/\:\d+$/g,'');
 	var Prov = new polkadotApi.WsProvider(wss);
 	var a = { provider: Prov }; // для общего случая коннекта
-	if(N.asset_id) { // в случае assetHub добавляем невыразимой мистической хуйни от шамана Габышева и Сёко Асахара
-	    a.signedExtensions = {
-	          ChargeAssetTxPayment: { extrinsic: {tip: "Compact<Balance>", assetId: "Option<AssetId>" } }
-	    };
+	if(N.asset_id) { // For AssetHubs, configure the API to understand ChargeAssetTxPayment
+		a.signedExtensions = {
+			ChargeAssetTxPayment: {
+				extrinsic: { tip: "Compact<Balance>", assetId: "Option<MultiLocation>" }, // Use MultiLocation here
+				payload: {} // Required structure, even if empty for payload part
+			}
+		};
+		console.log("Configured API with ChargeAssetTxPayment using Option<MultiLocation>");
 	}
 
         ////////////////////////////////////
@@ -1824,12 +1930,12 @@ template: `
 
 <section id='sv-section-aboutPayment' class="flex-col gap-small">
     <div class="flex-row flex-baseline gap-small">
-        <span class="t-price"><span class='chain-total'>   </span> <span class='chain-symbol'>   </span></span>
-        <span class="t-small t-tertiary">(<span class='chain-total'>   </span>€, 1 <span class='chain-symbol'>   </span> = 1 €)</span>
+        <span class="t-price"><span class='cx-total'>   </span> <span class='cx-symbol'>   </span></span>
+        <span class="t-small t-tertiary">(<span class='cx-total'>   </span>€, 1 <span class='cx-symbol'>   </span> = 1 €)</span>
     </div>
     <div class="t-small">
-        Including potential maximum transaction fee up to ~<span class='chain-fee'>   </span> <span class='chain-symbol'>   </span>
-        <span class="t-tertiary">(<span class='chain-fee'>   </span>€)</span>
+        Including potential maximum transaction fee up to ~<span class='cx-fee'>   </span> <span class='cx-symbol'>   </span>
+        <span class="t-tertiary">(<span class='cx-fee'>   </span>€)</span>
     </div>
 </section>
 
@@ -1840,20 +1946,20 @@ template: `
     </div>
     <div id='sv-toggle-manual-field' class="kco-collapse-content flex-col gap-medium">
         <p class="t-secondary t-small">
-            Send your payment to the unique address for your oder. Once <span class='chain-total_min'>   </span> <span class='chain-symbol'>   </span> is received at this address, your order will be completed.
+            Send your payment to the unique address for your oder. Once <span class='cx-total_min'>   </span> <span class='cx-symbol'>   </span> is received at this address, your order will be completed.
         </p>
 
         <div class="flex-row flex-start gap-small">
-            <div class="kco-tac-toggler" val="0">
+            <div class="sv-terms kco-tac-toggler" val="0">
                 <span class="material-symbols-outlined">check_box_outline_blank</span>
                 <span class="material-symbols-outlined">check_box</span>
             </div>
-            <span>Agree with <u>terms and conditions</u> to see the address and continue with payment</span>
+            <span>Agree to <u>terms and conditions</u> to see the address and continue with payment</span>
         </div>
 
         <div class="kco-manual-payment-card flex-col gap-large">
             <div class="kco-manual-address-field blured flex-row gap-medium">
-                <span class="t-account-address"><span class='chain-pay_acc'>   </span></span>
+                <span class="t-account-address"><span class='cx-pay_acc'>   </span></span>
                 <div class="kco-qr-modal">
                     <img id='sv-QR'>
                 </div>
@@ -1864,7 +1970,7 @@ template: `
                     <span class="material-symbols-outlined">qr_code_scanner</span>
                 </button>
             </div>
-            <span class="t-small"><span class='chain-topupButton' onclick='DOT.SV.topup(this)'></span>Total received <span class='chain-pay_bal B_pay_bal'></span> <span class='chain-symbol'></span> / <span class='chain-total_min'></span> <span class='chain-symbol'></span></span>
+            <span class="t-small"><span class='cx-topupButton' onclick='DOT.SV.topup(this)'></span>Total received <span class='cx-pay_bal B_pay_bal'></span> <span class='cx-symbol'></span> / <span class='cx-total_min'></span> <span class='cx-symbol'></span></span>
         </div>
     </div>
 </section>
@@ -2495,16 +2601,12 @@ kalatori_donate = async function(ara) { if(!ara) ara={};
 
     DOT.store = 'donate-api2';
     DOT.cx.daemon_direct = 'https://kalatori-js.zymologia.fi'; // 'http://localhost:16726'
-    DOT.mainjs = "https://site.zymologia.fi/KALATORI-JS/vendor/";
-
+    DOT.cx.mainjs = "https://site.zymologia.fi/KALATORI-JS/vendor/";
     DOT.cx.order_id = ara.order;
     DOT.cx.total = ara.total;
     DOT.cx.currency = (ara.currency?ara.currency:'USD');
     if(ara.currences) DOT.cx.currences = ara.currences;
-    // DOT.cx.ajax_url = "donate.php";
 
-    DOT.cx.success_callback = function(){ alert('SUCCESS'); };
-    DOT.cx.cancel_callback = function(){ alert('CANCEL'); };
     DOT.button_on = function(){ }; // DOT.dom('button').style.display='block'; };
     DOT.button_off = function(){ }; // DOT.dom('button').style.display='none'; };
     // DOT.onpaid = function() { alert("ONPAID"); };
